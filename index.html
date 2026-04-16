@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>🔑 비밀번호 보관함</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#f4f3ef;--surface:#fff;--surface2:#f0efe9;--border:#e2e0d8;--text:#1a1a18;--muted:#7a7972;--hint:#b0afa6;--accent:#2d6a4f;--accent-bg:#e8f4ee;--accent-light:#c8e6d4;--danger:#c0392b;--danger-bg:#fdecea;--r:14px;--rs:8px}
 @media(prefers-color-scheme:dark){:root{--bg:#181816;--surface:#222220;--surface2:#2a2a27;--border:#38382e;--text:#f0efe8;--muted:#88877e;--hint:#55554c;--accent:#52b788;--accent-bg:#1a2e22;--accent-light:#1e3d2a;--danger:#e57373;--danger-bg:#2e1a1a}}
@@ -74,6 +75,13 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;b
 .menu-btn{width:100%;padding:14px;border:1px solid var(--border);border-radius:var(--rs);background:var(--surface2);color:var(--text);font-size:14px;font-weight:500;cursor:pointer;text-align:left}
 .menu-btn:active{background:var(--border)}
 .menu-btn.red{color:var(--danger);border-color:var(--danger);background:var(--danger-bg)}
+/* 엑셀 열 매핑 */
+.col-map{background:var(--surface2);border-radius:var(--rs);padding:16px;margin-bottom:16px}
+.col-map p{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.5}
+.col-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.col-row:last-child{margin-bottom:0}
+.col-row label{font-size:13px;color:var(--muted);width:64px;flex-shrink:0}
+.col-row select{flex:1;padding:9px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--rs);background:var(--surface);color:var(--text);-webkit-appearance:none}
 .pin-modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px}
 .pin-modal-bg.open{display:flex}
 .pin-modal{background:var(--surface);border-radius:var(--r);padding:24px;width:100%;max-width:320px}
@@ -86,9 +94,12 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;b
 .pm-btns{display:flex;gap:8px;margin-top:16px}
 .pm-btns button{flex:1;padding:11px;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer}
 .tip{background:var(--surface2);border-radius:var(--rs);padding:12px 14px;font-size:12px;color:var(--muted);margin-top:20px;line-height:1.6}
+.divider{height:1px;background:var(--border);margin:12px 0}
+.section-title{font-size:11px;color:var(--hint);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;padding:0 2px}
 </style>
 </head>
 <body>
+
 <div id="pinScreen">
   <div class="pin-icon" id="pinIcon">🔒</div>
   <div class="pin-title" id="pinTitle">잠금 해제</div>
@@ -122,7 +133,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;b
   </div>
   <div id="countLabel" class="count-lbl"></div>
   <div id="results" class="results"></div>
-  <div class="tip">💡 데이터는 이 기기에만 저장돼요. 다른 기기에서 쓰려면 ⋯ 메뉴 → 내보내기 후 가져오기를 사용하세요.</div>
+  <div class="tip">💡 데이터는 이 기기에만 저장돼요. 다른 기기에서 쓰려면 ⋯ 메뉴 → 백업/복원을 사용하세요.</div>
 </div>
 <button class="fab" onclick="openAdd()">＋ 새 항목 추가</button>
 </div>
@@ -148,14 +159,40 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;b
   <div class="modal">
     <h3>메뉴</h3>
     <div class="menu-list">
+      <div class="section-title">엑셀 가져오기</div>
+      <button class="menu-btn" onclick="document.getElementById('xlsxFile').click()">📊 엑셀 파일 가져오기 (.xlsx)</button>
+      <input type="file" id="xlsxFile" accept=".xlsx,.xls" style="display:none" onchange="startXlsxImport(event)">
+
+      <div class="divider"></div>
+      <div class="section-title">백업 / 복원</div>
       <button class="menu-btn" onclick="exportJSON()">📤 백업 (JSON 내보내기)</button>
       <button class="menu-btn" onclick="document.getElementById('importFile').click()">📥 복원 (JSON 가져오기)</button>
-      <button class="menu-btn" onclick="exportCSV()">📊 엑셀용 CSV 내보내기</button>
+      <button class="menu-btn" onclick="exportCSV()">📋 CSV로 내보내기 (엑셀용)</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+
+      <div class="divider"></div>
       <button class="menu-btn" onclick="closeMenu();openPinChange()">🔑 PIN 변경</button>
       <button class="menu-btn red" onclick="clearAll()">🗑 모든 데이터 삭제</button>
       <button class="btn-cancel" style="width:100%;padding:13px;border-radius:var(--rs);font-size:15px;cursor:pointer;border:1px solid var(--border);background:transparent;margin-top:4px" onclick="closeMenu()">닫기</button>
     </div>
-    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+</div>
+
+<!-- 엑셀 열 매핑 모달 -->
+<div class="modal-bg" id="xlsxModal">
+  <div class="modal">
+    <h3>📊 엑셀 열 설정</h3>
+    <div class="col-map">
+      <p>엑셀의 어떤 열이 어떤 정보인지 선택해 주세요</p>
+      <div class="col-row"><label>사이트명</label><select id="xSite"></select></div>
+      <div class="col-row"><label>아이디</label><select id="xId"></select></div>
+      <div class="col-row"><label>비밀번호</label><select id="xPw"></select></div>
+      <div class="col-row"><label>메모 (선택)</label><select id="xNote"></select></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeXlsx()">취소</button>
+      <button class="btn-save" onclick="confirmXlsx()">가져오기</button>
+    </div>
   </div>
 </div>
 
@@ -175,30 +212,23 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;b
 </div>
 
 <script>
-const LOCK_KEY='pv_pin',DATA_KEY='pv_data';
-let pinInput='',pinStep='verify',pinFirst='',wrongCount=0,data=[],editIdx=-1,lockTimer;
+const LOCK_KEY='pv_pin', DATA_KEY='pv_data';
+let pinInput='', pinStep='verify', pinFirst='', wrongCount=0;
+let data=[], editIdx=-1, lockTimer;
+let xlsxRawRows=[], xlsxHeaders=[];
 
+// ── SHA256 ──
 async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 function getPin(){try{return localStorage.getItem(LOCK_KEY);}catch(e){return null;}}
 async function savePin(p){try{localStorage.setItem(LOCK_KEY,await sha256(p));}catch(e){}}
 function loadData(){try{const s=localStorage.getItem(DATA_KEY);data=s?JSON.parse(s):[];}catch(e){data=[];}}
 function saveData(){try{localStorage.setItem(DATA_KEY,JSON.stringify(data));}catch(e){}}
 
+// ── PIN ──
 function initPin(){
   const stored=getPin();
-  if(!stored){
-    pinStep='set1';
-    document.getElementById('pinIcon').textContent='🔐';
-    document.getElementById('pinTitle').textContent='PIN 설정';
-    document.getElementById('pinSub').textContent='처음 사용하시네요!\n4자리 PIN을 설정해 주세요';
-    document.getElementById('pinForget').style.display='none';
-  } else {
-    pinStep='verify';
-    document.getElementById('pinIcon').textContent='🔒';
-    document.getElementById('pinTitle').textContent='잠금 해제';
-    document.getElementById('pinSub').textContent='PIN 4자리를 입력해 주세요';
-    document.getElementById('pinForget').style.display='block';
-  }
+  if(!stored){pinStep='set1';document.getElementById('pinIcon').textContent='🔐';document.getElementById('pinTitle').textContent='PIN 설정';document.getElementById('pinSub').textContent='처음 사용하시네요!\n4자리 PIN을 설정해 주세요';document.getElementById('pinForget').style.display='none';}
+  else{pinStep='verify';document.getElementById('pinIcon').textContent='🔒';document.getElementById('pinTitle').textContent='잠금 해제';document.getElementById('pinSub').textContent='PIN 4자리를 입력해 주세요';document.getElementById('pinForget').style.display='block';}
   pinInput='';dots();
 }
 
@@ -207,81 +237,48 @@ function nd(){if(!pinInput.length)return;pinInput=pinInput.slice(0,-1);dots();do
 function dots(state){for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.className='pin-dot'+(i<pinInput.length?' filled':'')+(state?' '+state:'');}}
 
 async function processPin(){
-  if(pinStep==='set1'){
-    pinFirst=pinInput;pinInput='';
-    document.getElementById('pinTitle').textContent='PIN 확인';
-    document.getElementById('pinSub').textContent='한 번 더 입력해 주세요';
-    dots();pinStep='set2';
-  } else if(pinStep==='set2'){
+  if(pinStep==='set1'){pinFirst=pinInput;pinInput='';document.getElementById('pinTitle').textContent='PIN 확인';document.getElementById('pinSub').textContent='한 번 더 입력해 주세요';dots();pinStep='set2';}
+  else if(pinStep==='set2'){
     if(pinInput===pinFirst){await savePin(pinInput);unlock();}
-    else{
-      dots('error');
-      setTimeout(()=>{
-        document.getElementById('pinErr').textContent='PIN이 일치하지 않아요. 다시 설정해 주세요';
-        pinFirst='';pinInput='';pinStep='set1';
-        document.getElementById('pinTitle').textContent='PIN 설정';
-        document.getElementById('pinSub').textContent='4자리 PIN을 설정해 주세요';
-        dots();
-      },500);
-    }
+    else{dots('error');setTimeout(()=>{document.getElementById('pinErr').textContent='PIN이 일치하지 않아요. 다시 설정해 주세요';pinFirst='';pinInput='';pinStep='set1';document.getElementById('pinTitle').textContent='PIN 설정';document.getElementById('pinSub').textContent='4자리 PIN을 설정해 주세요';dots();},500);}
   } else {
     const h=await sha256(pinInput);
     if(h===getPin()){wrongCount=0;unlock();}
     else{
       wrongCount++;dots('error');
       document.getElementById('pinErr').textContent=wrongCount>=5?'PIN 5회 오류 — 10초 대기':`PIN이 틀렸어요 (${wrongCount}/5)`;
-      if(wrongCount>=5){
-        document.querySelectorAll('.num-btn').forEach(b=>b.disabled=true);
-        let s=10;const t=setInterval(()=>{s--;if(s<=0){clearInterval(t);document.querySelectorAll('.num-btn').forEach(b=>b.disabled=false);document.getElementById('pinErr').textContent='';wrongCount=0;}},1000);
-      }
+      if(wrongCount>=5){document.querySelectorAll('.num-btn').forEach(b=>b.disabled=true);let s=10;const t=setInterval(()=>{s--;if(s<=0){clearInterval(t);document.querySelectorAll('.num-btn').forEach(b=>b.disabled=false);document.getElementById('pinErr').textContent='';wrongCount=0;}},1000);}
       setTimeout(()=>{pinInput='';dots();},600);
     }
   }
 }
 
-function unlock(){
-  document.getElementById('pinScreen').style.display='none';
-  document.getElementById('appScreen').style.display='block';
-  loadData();render();resetTimer();
-}
+function unlock(){document.getElementById('pinScreen').style.display='none';document.getElementById('appScreen').style.display='block';loadData();render();resetTimer();}
 
 function lockApp(){
-  document.getElementById('appScreen').style.display='none';
-  document.getElementById('pinScreen').style.display='flex';
-  document.getElementById('editModal').classList.remove('open');
-  document.getElementById('menuModal').classList.remove('open');
+  document.getElementById('appScreen').style.display='none';document.getElementById('pinScreen').style.display='flex';
+  document.getElementById('editModal').classList.remove('open');document.getElementById('menuModal').classList.remove('open');document.getElementById('xlsxModal').classList.remove('open');
   pinInput='';pinStep='verify';wrongCount=0;
-  document.getElementById('pinIcon').textContent='🔒';
-  document.getElementById('pinTitle').textContent='잠금 해제';
-  document.getElementById('pinSub').textContent='PIN 4자리를 입력해 주세요';
-  document.getElementById('pinErr').textContent='';
-  document.getElementById('pinForget').style.display='block';
-  dots();
+  document.getElementById('pinIcon').textContent='🔒';document.getElementById('pinTitle').textContent='잠금 해제';document.getElementById('pinSub').textContent='PIN 4자리를 입력해 주세요';document.getElementById('pinErr').textContent='';document.getElementById('pinForget').style.display='block';dots();
 }
 
 function forgetPin(){
   if(!confirm('PIN을 초기화하면 저장된 데이터도 모두 지워져요.\n계속할까요?'))return;
   try{localStorage.removeItem(LOCK_KEY);localStorage.removeItem(DATA_KEY);}catch(e){}
   data=[];pinFirst='';pinInput='';pinStep='set1';wrongCount=0;
-  document.getElementById('pinIcon').textContent='🔐';
-  document.getElementById('pinTitle').textContent='PIN 설정';
-  document.getElementById('pinSub').textContent='새 PIN 4자리를 설정해 주세요';
-  document.getElementById('pinErr').textContent='';
-  document.getElementById('pinForget').style.display='none';
-  dots();
+  document.getElementById('pinIcon').textContent='🔐';document.getElementById('pinTitle').textContent='PIN 설정';document.getElementById('pinSub').textContent='새 PIN 4자리를 설정해 주세요';document.getElementById('pinErr').textContent='';document.getElementById('pinForget').style.display='none';dots();
 }
 
 function resetTimer(){clearTimeout(lockTimer);lockTimer=setTimeout(lockApp,3*60*1000);}
 ['touchstart','click','keydown'].forEach(e=>document.addEventListener(e,()=>{if(document.getElementById('appScreen').style.display!=='none')resetTimer();},{passive:true}));
 
+// ── RENDER ──
 function render(){
   const q=(document.getElementById('searchInput').value||'').toLowerCase().trim();
   const list=q?data.filter(d=>d.site.toLowerCase().includes(q)||d.id.toLowerCase().includes(q)):data;
   document.getElementById('countLabel').textContent=q?`"${q}" 검색 결과 ${list.length}개`:`전체 ${data.length}개`;
   const C=document.getElementById('results');
-  if(!data.length){
-    C.innerHTML=`<div class="empty"><div class="eico">🗝</div><p>저장된 항목이 없어요</p><button class="empty-btn" onclick="openAdd()">첫 항목 추가하기</button></div>`;return;
-  }
+  if(!data.length){C.innerHTML=`<div class="empty"><div class="eico">🗝</div><p>저장된 항목이 없어요</p><button class="empty-btn" onclick="openAdd()">첫 항목 추가하기</button></div>`;return;}
   if(!list.length){C.innerHTML=`<div class="empty"><div class="eico">🔎</div><p>검색 결과가 없어요</p></div>`;return;}
   C.innerHTML=list.map(d=>{
     const ri=data.indexOf(d);
@@ -294,6 +291,7 @@ function render(){
   }).join('');
 }
 
+// ── ADD/EDIT ──
 function openAdd(){editIdx=-1;document.getElementById('modalTitle').textContent='새 항목 추가';['fSite','fId','fPw','fNote'].forEach(id=>document.getElementById(id).value='');document.getElementById('delBtn').style.display='none';document.getElementById('editModal').classList.add('open');setTimeout(()=>document.getElementById('fSite').focus(),120);}
 function openEdit(i){editIdx=i;const d=data[i];document.getElementById('modalTitle').textContent='항목 수정';document.getElementById('fSite').value=d.site||'';document.getElementById('fId').value=d.id||'';document.getElementById('fPw').value=d.pw||'';document.getElementById('fNote').value=d.note||'';document.getElementById('delBtn').style.display='block';document.getElementById('editModal').classList.add('open');}
 function closeEdit(){document.getElementById('editModal').classList.remove('open');}
@@ -306,35 +304,90 @@ function saveEntry(){
 }
 function deleteEntry(){if(!confirm(`"${data[editIdx].site}" 항목을 삭제할까요?`))return;data.splice(editIdx,1);saveData();closeEdit();render();}
 
+// ── MENU ──
 function openMenu(){document.getElementById('menuModal').classList.add('open');}
 function closeMenu(){document.getElementById('menuModal').classList.remove('open');}
 
-function exportJSON(){
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='passwords_backup_'+new Date().toISOString().slice(0,10)+'.json';a.click();closeMenu();
+// ── 엑셀 가져오기 ──
+function startXlsxImport(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      xlsxRawRows=XLSX.utils.sheet_to_json(ws,{header:1});
+      if(!xlsxRawRows||xlsxRawRows.length<2){alert('데이터가 없는 파일이에요');return;}
+      xlsxHeaders=(xlsxRawRows[0]||[]).map((h,i)=>h?String(h):`열${i+1}`);
+      populateXlsxSelects();
+      closeMenu();
+      document.getElementById('xlsxModal').classList.add('open');
+    }catch(err){alert('파일을 읽을 수 없어요. 엑셀 파일인지 확인해 주세요.');}
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value='';
 }
-function exportCSV(){
-  const rows=[['사이트','아이디','비밀번호','메모'],...data.map(d=>[d.site,d.id,d.pw,d.note||''])];
-  const csv=rows.map(r=>r.map(c=>'"'+(c||'').replace(/"/g,'""')+'"').join(',')).join('\n');
-  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='passwords_'+new Date().toISOString().slice(0,10)+'.csv';a.click();closeMenu();
+
+function populateXlsxSelects(){
+  const noneOpt='<option value="-1">— 없음 —</option>';
+  ['xSite','xId','xPw','xNote'].forEach((id,di)=>{
+    const sel=document.getElementById(id);
+    sel.innerHTML=(di===3?noneOpt:'')+xlsxHeaders.map((h,i)=>`<option value="${i}">${h}</option>`).join('');
+    if(di<3&&di<xlsxHeaders.length) sel.value=di;
+    if(di===3) sel.value=-1;
+  });
+  // 자동 감지
+  const kw={xSite:['사이트','site','url','주소','이름','name','서비스'],xId:['아이디','id','이메일','email','계정','account','username'],xPw:['비밀번호','password','pw','pass','패스워드'],xNote:['메모','note','memo','비고','설명','remark']};
+  Object.entries(kw).forEach(([sid,words])=>{
+    const idx=xlsxHeaders.findIndex(h=>words.some(w=>h.toLowerCase().includes(w)));
+    if(idx>=0) document.getElementById(sid).value=idx;
+  });
 }
-function importData(e){
+
+function closeXlsx(){document.getElementById('xlsxModal').classList.remove('open');}
+
+function confirmXlsx(){
+  const si=parseInt(document.getElementById('xSite').value);
+  const ii=parseInt(document.getElementById('xId').value);
+  const pi=parseInt(document.getElementById('xPw').value);
+  const ni=parseInt(document.getElementById('xNote').value);
+  if(si<0){alert('사이트명 열을 선택해 주세요');return;}
+  const imported=xlsxRawRows.slice(1).filter(r=>r&&r[si]!=null&&String(r[si]).trim()).map(r=>({
+    site:String(r[si]||'').trim(),
+    id:ii>=0?String(r[ii]||'').trim():'',
+    pw:pi>=0?String(r[pi]||'').trim():'',
+    note:ni>=0?String(r[ni]||'').trim():'',
+    updated:Date.now()
+  }));
+  if(!imported.length){alert('가져올 데이터가 없어요');return;}
+  const dupes=imported.filter(item=>data.find(d=>d.site===item.site&&d.id===item.id)).length;
+  const msg=dupes>0?`${imported.length}개 항목을 가져와요.\n(중복 ${dupes}개는 건너뜀)\n기존 데이터와 합쳐져요.`:`${imported.length}개 항목을 가져와요.\n기존 데이터와 합쳐져요.`;
+  if(!confirm(msg))return;
+  imported.forEach(item=>{if(!data.find(d=>d.site===item.site&&d.id===item.id))data.unshift(item);});
+  saveData();closeXlsx();render();
+  alert(`✅ ${imported.length - dupes}개 항목을 가져왔어요!`);
+}
+
+// ── 백업/복원 ──
+function exportJSON(){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='passwords_backup_'+new Date().toISOString().slice(0,10)+'.json';a.click();closeMenu();}
+function exportCSV(){const rows=[['사이트','아이디','비밀번호','메모'],...data.map(d=>[d.site,d.id,d.pw,d.note||''])];const csv=rows.map(r=>r.map(c=>'"'+(c||'').replace(/"/g,'""')+'"').join(',')).join('\n');const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='passwords_'+new Date().toISOString().slice(0,10)+'.csv';a.click();closeMenu();}
+function importJSON(e){
   const file=e.target.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=function(ev){
     try{
       const imp=JSON.parse(ev.target.result);
       if(!Array.isArray(imp))throw new Error();
-      if(!confirm(`${imp.length}개 항목을 가져올까요? 기존 데이터와 합쳐져요.`))return;
+      if(!confirm(`${imp.length}개 항목을 복원할까요? 기존 데이터와 합쳐져요.`))return;
       imp.forEach(item=>{if(item.site&&!data.find(d=>d.site===item.site&&d.id===item.id))data.push(item);});
-      saveData();render();closeMenu();alert(`✅ ${imp.length}개 항목을 가져왔어요!`);
+      saveData();render();closeMenu();alert(`✅ ${imp.length}개 항목을 복원했어요!`);
     }catch(err){alert('올바른 백업 파일이 아니에요.');}
   };
   reader.readAsText(file);e.target.value='';
 }
 function clearAll(){if(!confirm('모든 데이터를 삭제할까요?\n이 작업은 되돌릴 수 없어요.'))return;data=[];saveData();render();closeMenu();}
 
+// ── PIN 변경 ──
 function openPinChange(){['curPin','newPin','newPin2'].forEach(id=>document.getElementById(id).value='');document.getElementById('pmErr').textContent='';document.getElementById('pinChangeModal').classList.add('open');}
 function closePinChange(){document.getElementById('pinChangeModal').classList.remove('open');}
 async function changePinSubmit(){
@@ -347,6 +400,7 @@ async function changePinSubmit(){
   await savePin(nw);closePinChange();alert('✅ PIN이 변경됐어요!');
 }
 
+// ── UTILS ──
 function tp(pw,i){const el=document.getElementById('pv'+i),btn=document.getElementById('pb'+i);if(!el||!btn)return;if(btn.textContent==='보기'){el.textContent=pw;btn.textContent='숨기기';btn.classList.add('ok');}else{el.textContent='••••••••';btn.textContent='보기';btn.classList.remove('ok');}}
 function cp(val,btn){const done=()=>{const o=btn.textContent;btn.textContent='완료!';btn.classList.add('ok');setTimeout(()=>{btn.textContent=o;btn.classList.remove('ok');},1500);};if(navigator.clipboard){navigator.clipboard.writeText(val).then(done).catch(()=>fb(val,done));}else{fb(val,done);}}
 function fb(val,cb){const t=document.createElement('textarea');t.value=val;t.style.cssText='position:fixed;opacity:0';document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);cb();}
@@ -355,6 +409,7 @@ function ea(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
 
 document.getElementById('editModal').addEventListener('click',function(e){if(e.target===this)closeEdit();});
 document.getElementById('menuModal').addEventListener('click',function(e){if(e.target===this)closeMenu();});
+document.getElementById('xlsxModal').addEventListener('click',function(e){if(e.target===this)closeXlsx();});
 
 initPin();
 </script>
