@@ -4,379 +4,359 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>🔑 비밀번호 보관함</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-:root {
-  --bg:#f4f3ef;--surface:#fff;--surface2:#f0efe9;--border:#e2e0d8;
-  --text:#1a1a18;--muted:#7a7972;--hint:#b0afa6;
-  --accent:#2d6a4f;--accent-bg:#e8f4ee;--accent-light:#c8e6d4;
-  --danger:#c0392b;--danger-bg:#fdecea;
-  --r:14px;--rs:8px;
-}
-@media(prefers-color-scheme:dark){:root{
-  --bg:#181816;--surface:#222220;--surface2:#2a2a27;--border:#38382e;
-  --text:#f0efe8;--muted:#88877e;--hint:#55554c;
-  --accent:#52b788;--accent-bg:#1a2e22;--accent-light:#1e3d2a;
-  --danger:#e57373;--danger-bg:#2e1a1a;
-}}
+:root{--bg:#f4f3ef;--surface:#fff;--surface2:#f0efe9;--border:#e2e0d8;--text:#1a1a18;--muted:#7a7972;--hint:#b0afa6;--accent:#2d6a4f;--accent-bg:#e8f4ee;--accent-light:#c8e6d4;--danger:#c0392b;--danger-bg:#fdecea;--r:14px;--rs:8px}
+@media(prefers-color-scheme:dark){:root{--bg:#181816;--surface:#222220;--surface2:#2a2a27;--border:#38382e;--text:#f0efe8;--muted:#88877e;--hint:#55554c;--accent:#52b788;--accent-bg:#1a2e22;--accent-light:#1e3d2a;--danger:#e57373;--danger-bg:#2e1a1a}}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-.app{max-width:480px;margin:0 auto;padding:28px 16px 60px}
-
-/* Header */
-.hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px}
+#pinScreen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;padding:24px}
+.pin-icon{font-size:48px;margin-bottom:16px}
+.pin-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.pin-sub{font-size:14px;color:var(--muted);margin-bottom:32px;text-align:center;line-height:1.6;white-space:pre-line}
+.pin-dots{display:flex;gap:14px;margin-bottom:28px}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border);transition:all .15s}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent)}
+.pin-dot.error{background:var(--danger);border-color:var(--danger)}
+.pin-err{font-size:13px;color:var(--danger);margin-bottom:16px;min-height:18px;text-align:center}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:280px}
+.num-btn{aspect-ratio:1;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:22px;font-weight:500;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;transition:transform .1s,background .1s}
+.num-btn:active{background:var(--surface2);transform:scale(.93)}
+.num-btn.del{font-size:18px;color:var(--muted)}
+.num-btn.empty{border:none;background:transparent;cursor:default}
+.num-btn:disabled{opacity:.4;cursor:not-allowed}
+.pin-forget{margin-top:24px;font-size:12px;color:var(--hint);text-decoration:underline;cursor:pointer;background:none;border:none}
+#appScreen{display:none}
+.app{max-width:480px;margin:0 auto;padding:28px 16px 80px}
+.hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
 .hd h1{font-size:21px;font-weight:700;letter-spacing:-.5px}
-.hd p{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5}
-.btn-icon{background:none;border:1px solid var(--border);border-radius:var(--rs);padding:6px 10px;font-size:13px;color:var(--muted);cursor:pointer}
+.hd-btns{display:flex;gap:6px}
+.btn-icon{background:none;border:1px solid var(--border);border-radius:var(--rs);padding:6px 11px;font-size:14px;color:var(--muted);cursor:pointer}
 .btn-icon:active{background:var(--surface2)}
-
-/* Setup card */
-.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px}
-.setup-card h3{font-size:15px;font-weight:600;margin-bottom:4px}
-.setup-card .desc{font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.6}
-.field{margin-bottom:14px}
-.field label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px}
-.field input,.field select{
-  width:100%;padding:11px 12px;font-size:14px;
-  border:1px solid var(--border);border-radius:var(--rs);
-  background:var(--surface2);color:var(--text);
-  -webkit-appearance:none;
-}
-.field input:focus,.field select:focus{outline:none;border-color:var(--accent)}
-.field .hint{font-size:11px;color:var(--hint);margin-top:4px}
-.btn-primary{
-  width:100%;padding:13px;background:var(--accent);color:#fff;
-  border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer;
-}
-.btn-primary:active{opacity:.85}
-.btn-primary:disabled{opacity:.5;cursor:not-allowed}
-
-/* Col mapping */
-.col-map{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:16px}
-.col-map h3{font-size:15px;font-weight:600;margin-bottom:4px}
-.col-map .desc{font-size:12px;color:var(--muted);margin-bottom:16px}
-.col-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.col-row label{font-size:12px;color:var(--muted);width:60px;flex-shrink:0}
-.col-row select{flex:1;padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--rs);background:var(--surface2);color:var(--text)}
-
-/* Status bar */
-.status-bar{display:flex;align-items:center;justify-content:space-between;background:var(--accent-bg);border:1px solid var(--accent-light);border-radius:var(--rs);padding:10px 14px;margin-bottom:14px}
-.status-bar .stxt{font-size:13px;color:var(--accent);font-weight:600}
-.status-bar .sactions{display:flex;gap:8px;align-items:center}
-.btn-sm{padding:5px 10px;font-size:12px;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--muted);cursor:pointer;white-space:nowrap}
-.btn-sm:active{background:var(--surface2)}
-.btn-sm.accent{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
-
-/* Search */
-.search-wrap{position:relative;margin-bottom:10px}
+.search-wrap{position:relative;margin-bottom:14px}
 .search-wrap input{width:100%;padding:13px 14px 13px 42px;border:1px solid var(--border);border-radius:var(--r);font-size:16px;background:var(--surface);color:var(--text);-webkit-appearance:none}
 .search-wrap input:focus{outline:none;border-color:var(--accent)}
 .sico{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none}
 .count-lbl{font-size:12px;color:var(--hint);margin-bottom:12px;padding-left:2px}
-
-/* Cards */
 .results{display:flex;flex-direction:column;gap:10px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-.card-hd{padding:12px 14px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
-.site-ico{width:24px;height:24px;border-radius:6px;background:var(--accent-bg);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
-.site-name{font-size:14px;font-weight:600}
+.card-hd{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.site-ico{width:26px;height:26px;border-radius:7px;background:var(--accent-bg);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.site-name{font-size:14px;font-weight:600;flex:1}
+.card-edit-btn{font-size:13px;color:var(--hint);background:none;border:none;cursor:pointer;padding:4px 6px}
 .field-row{display:flex;align-items:center;padding:10px 14px;gap:8px}
 .field-row+.field-row{border-top:1px solid var(--border)}
-.flbl{font-size:11px;color:var(--hint);width:50px;flex-shrink:0;letter-spacing:.4px;text-transform:uppercase}
+.flbl{font-size:11px;color:var(--hint);width:48px;flex-shrink:0;text-transform:uppercase;letter-spacing:.4px}
 .fval{flex:1;font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .faction{display:flex;gap:5px;flex-shrink:0}
 .btn-a{padding:5px 10px;font-size:12px;border:1px solid var(--border);border-radius:20px;background:var(--surface2);color:var(--muted);cursor:pointer;white-space:nowrap}
 .btn-a:active{background:var(--border)}
 .btn-a.ok{color:var(--accent);border-color:var(--accent);background:var(--accent-bg)}
-
-.empty{text-align:center;padding:48px 16px;color:var(--hint);font-size:15px}
-.empty .eico{font-size:36px;margin-bottom:10px}
-
-/* Loading */
-.loading{text-align:center;padding:40px 16px}
-.spinner{width:28px;height:28px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;margin:0 auto 12px;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading p{font-size:14px;color:var(--muted)}
-
-/* Error */
-.err-box{background:var(--danger-bg);border:1px solid var(--danger);border-radius:var(--rs);padding:14px;font-size:13px;color:var(--danger);margin-bottom:14px;line-height:1.6}
-
+.empty{text-align:center;padding:56px 16px;color:var(--hint)}
+.empty .eico{font-size:40px;margin-bottom:12px}
+.empty p{font-size:15px;margin-bottom:20px}
+.empty .empty-btn{padding:12px 24px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer}
+.fab{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:448px;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.18)}
+.fab:active{opacity:.88}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--r) var(--r) 0 0;width:100%;max-width:480px;padding:24px 20px 40px;max-height:92vh;overflow-y:auto}
+.modal h3{font-size:17px;font-weight:700;margin-bottom:18px}
+.mfield{margin-bottom:14px}
+.mfield label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px}
+.mfield input{width:100%;padding:12px;font-size:15px;border:1px solid var(--border);border-radius:var(--rs);background:var(--surface2);color:var(--text);-webkit-appearance:none}
+.mfield input:focus{outline:none;border-color:var(--accent)}
+.modal-btns{display:flex;gap:8px;margin-top:18px}
+.modal-btns button{flex:1;padding:13px;border-radius:var(--rs);font-size:15px;font-weight:600;cursor:pointer}
+.btn-cancel{border:1px solid var(--border);background:transparent;color:var(--muted)}
+.btn-save{border:none;background:var(--accent);color:#fff}
+.btn-del{border:1px solid var(--danger);background:var(--danger-bg);color:var(--danger);flex:0 0 auto!important;padding:13px 16px!important}
+.menu-list{display:flex;flex-direction:column;gap:8px}
+.menu-btn{width:100%;padding:14px;border:1px solid var(--border);border-radius:var(--rs);background:var(--surface2);color:var(--text);font-size:14px;font-weight:500;cursor:pointer;text-align:left}
+.menu-btn:active{background:var(--border)}
+.menu-btn.red{color:var(--danger);border-color:var(--danger);background:var(--danger-bg)}
+.pin-modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px}
+.pin-modal-bg.open{display:flex}
+.pin-modal{background:var(--surface);border-radius:var(--r);padding:24px;width:100%;max-width:320px}
+.pin-modal h3{font-size:16px;font-weight:700;margin-bottom:16px}
+.pm-f{margin-bottom:12px}
+.pm-f label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+.pm-f input{width:100%;padding:10px 12px;font-size:20px;border:1px solid var(--border);border-radius:var(--rs);background:var(--surface2);color:var(--text);letter-spacing:6px;text-align:center;-webkit-appearance:none}
+.pm-f input:focus{outline:none;border-color:var(--accent)}
+.pm-err{font-size:12px;color:var(--danger);margin-top:8px;min-height:16px}
+.pm-btns{display:flex;gap:8px;margin-top:16px}
+.pm-btns button{flex:1;padding:11px;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer}
 .tip{background:var(--surface2);border-radius:var(--rs);padding:12px 14px;font-size:12px;color:var(--muted);margin-top:20px;line-height:1.6}
-
-/* Steps */
-.steps{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:16px}
-.steps h3{font-size:14px;font-weight:600;margin-bottom:14px}
-.step{display:flex;gap:10px;margin-bottom:12px;align-items:flex-start}
-.step:last-child{margin-bottom:0}
-.step-num{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
-.step-txt{font-size:13px;color:var(--muted);line-height:1.6;flex:1}
-.step-txt strong{color:var(--text);font-weight:600}
-.step-txt code{font-size:12px;background:var(--surface2);padding:1px 5px;border-radius:4px;font-family:monospace}
 </style>
 </head>
 <body>
+<div id="pinScreen">
+  <div class="pin-icon" id="pinIcon">🔒</div>
+  <div class="pin-title" id="pinTitle">잠금 해제</div>
+  <div class="pin-sub" id="pinSub">PIN 4자리를 입력해 주세요</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-err" id="pinErr"></div>
+  <div class="numpad">
+    <button class="num-btn" onclick="np('1')">1</button><button class="num-btn" onclick="np('2')">2</button><button class="num-btn" onclick="np('3')">3</button>
+    <button class="num-btn" onclick="np('4')">4</button><button class="num-btn" onclick="np('5')">5</button><button class="num-btn" onclick="np('6')">6</button>
+    <button class="num-btn" onclick="np('7')">7</button><button class="num-btn" onclick="np('8')">8</button><button class="num-btn" onclick="np('9')">9</button>
+    <button class="num-btn empty"></button><button class="num-btn" onclick="np('0')">0</button><button class="num-btn del" onclick="nd()">⌫</button>
+  </div>
+  <button class="pin-forget" id="pinForget" onclick="forgetPin()" style="display:none">PIN을 잊었어요</button>
+</div>
+
+<div id="appScreen">
 <div class="app">
   <div class="hd">
-    <div>
-      <h1>🔑 비밀번호 보관함</h1>
-      <p id="hdDesc">깃허브 연동 설정을 해주세요</p>
-    </div>
-    <button class="btn-icon" id="settingsBtn" onclick="showSettings()" style="display:none">⚙️ 설정</button>
-  </div>
-
-  <!-- Setup -->
-  <div id="setupSection">
-    <div class="steps">
-      <h3>📋 준비 방법</h3>
-      <div class="step"><div class="step-num">1</div><div class="step-txt">깃허브에서 <strong>새 저장소(repository)</strong>를 만들어요 <br>예: <code>my-passwords</code></div></div>
-      <div class="step"><div class="step-num">2</div><div class="step-txt">저장소에 엑셀 파일을 업로드해요 <br>예: <code>passwords.xlsx</code></div></div>
-      <div class="step"><div class="step-num">3</div><div class="step-txt">아래에 <strong>깃허브 아이디</strong>, <strong>저장소 이름</strong>, <strong>파일 이름</strong>을 입력해요</div></div>
-      <div class="step"><div class="step-num">4</div><div class="step-txt">이 앱도 같은 저장소에 <code>index.html</code>로 올리면 링크로 접속 가능!</div></div>
-    </div>
-
-    <div class="setup-card">
-      <h3>🔗 깃허브 연동 설정</h3>
-      <div class="desc">엑셀 파일이 있는 깃허브 저장소 정보를 입력해 주세요</div>
-      <div class="field">
-        <label>깃허브 아이디 (username)</label>
-        <input type="text" id="ghUser" placeholder="예: honggildong" autocomplete="off" autocorrect="off" spellcheck="false">
-      </div>
-      <div class="field">
-        <label>저장소 이름 (repository)</label>
-        <input type="text" id="ghRepo" placeholder="예: my-passwords" autocomplete="off" autocorrect="off" spellcheck="false">
-      </div>
-      <div class="field">
-        <label>엑셀 파일 이름</label>
-        <input type="text" id="ghFile" placeholder="예: passwords.xlsx" value="passwords.xlsx" autocomplete="off" autocorrect="off" spellcheck="false">
-        <div class="hint">저장소 최상위 폴더에 있는 파일 이름</div>
-      </div>
-      <div class="field">
-        <label>브랜치 이름 (보통 main 또는 master)</label>
-        <input type="text" id="ghBranch" placeholder="main" value="main" autocomplete="off" autocorrect="off" spellcheck="false">
-      </div>
-      <button class="btn-primary" id="connectBtn" onclick="connectGitHub()">연동하고 파일 불러오기</button>
+    <h1>🔑 비밀번호 보관함</h1>
+    <div class="hd-btns">
+      <button class="btn-icon" onclick="openMenu()">⋯ 메뉴</button>
+      <button class="btn-icon" onclick="lockApp()">🔒</button>
     </div>
   </div>
+  <div class="search-wrap">
+    <span class="sico">🔍</span>
+    <input type="search" id="searchInput" placeholder="사이트 이름 검색..." oninput="render()" autocomplete="off" autocorrect="off" spellcheck="false">
+  </div>
+  <div id="countLabel" class="count-lbl"></div>
+  <div id="results" class="results"></div>
+  <div class="tip">💡 데이터는 이 기기에만 저장돼요. 다른 기기에서 쓰려면 ⋯ 메뉴 → 내보내기 후 가져오기를 사용하세요.</div>
+</div>
+<button class="fab" onclick="openAdd()">＋ 새 항목 추가</button>
+</div>
 
-  <!-- Loading -->
-  <div id="loadingSection" style="display:none">
-    <div class="loading">
-      <div class="spinner"></div>
-      <p>깃허브에서 파일을 불러오는 중...</p>
+<!-- 추가/수정 모달 -->
+<div class="modal-bg" id="editModal">
+  <div class="modal">
+    <h3 id="modalTitle">새 항목 추가</h3>
+    <div class="mfield"><label>사이트 이름 *</label><input type="text" id="fSite" placeholder="예: 네이버, 카카오" autocomplete="off" autocorrect="off" spellcheck="false"></div>
+    <div class="mfield"><label>아이디 / 이메일</label><input type="text" id="fId" placeholder="예: hong@email.com" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="none"></div>
+    <div class="mfield"><label>비밀번호</label><input type="text" id="fPw" placeholder="비밀번호 입력" autocomplete="off" autocorrect="off" spellcheck="false"></div>
+    <div class="mfield"><label>메모 (선택)</label><input type="text" id="fNote" placeholder="추가 정보" autocomplete="off"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeEdit()">취소</button>
+      <button class="btn-del" id="delBtn" onclick="deleteEntry()" style="display:none">삭제</button>
+      <button class="btn-save" onclick="saveEntry()">저장</button>
     </div>
   </div>
+</div>
 
-  <!-- Error -->
-  <div id="errorSection" style="display:none">
-    <div class="err-box" id="errMsg"></div>
-    <button class="btn-primary" onclick="showSettings()">설정 다시 하기</button>
+<!-- 메뉴 모달 -->
+<div class="modal-bg" id="menuModal">
+  <div class="modal">
+    <h3>메뉴</h3>
+    <div class="menu-list">
+      <button class="menu-btn" onclick="exportJSON()">📤 백업 (JSON 내보내기)</button>
+      <button class="menu-btn" onclick="document.getElementById('importFile').click()">📥 복원 (JSON 가져오기)</button>
+      <button class="menu-btn" onclick="exportCSV()">📊 엑셀용 CSV 내보내기</button>
+      <button class="menu-btn" onclick="closeMenu();openPinChange()">🔑 PIN 변경</button>
+      <button class="menu-btn red" onclick="clearAll()">🗑 모든 데이터 삭제</button>
+      <button class="btn-cancel" style="width:100%;padding:13px;border-radius:var(--rs);font-size:15px;cursor:pointer;border:1px solid var(--border);background:transparent;margin-top:4px" onclick="closeMenu()">닫기</button>
+    </div>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
   </div>
+</div>
 
-  <!-- Column mapping -->
-  <div id="colMapSection" style="display:none">
-    <div class="col-map">
-      <h3>📋 열 설정</h3>
-      <div class="desc">엑셀의 어떤 열이 어떤 정보인지 선택해 주세요 (한 번만 하면 기억해요)</div>
-      <div class="col-row"><label>사이트명</label><select id="colSite"></select></div>
-      <div class="col-row"><label>아이디</label><select id="colId"></select></div>
-      <div class="col-row"><label>비밀번호</label><select id="colPw"></select></div>
-      <button class="btn-primary" onclick="confirmColumns()">확인</button>
+<!-- PIN 변경 -->
+<div class="pin-modal-bg" id="pinChangeModal">
+  <div class="pin-modal">
+    <h3>🔑 PIN 변경</h3>
+    <div class="pm-f"><label>현재 PIN</label><input type="password" id="curPin" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+    <div class="pm-f"><label>새 PIN (4자리)</label><input type="password" id="newPin" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+    <div class="pm-f"><label>새 PIN 확인</label><input type="password" id="newPin2" inputmode="numeric" maxlength="4" placeholder="••••"></div>
+    <div class="pm-err" id="pmErr"></div>
+    <div class="pm-btns">
+      <button style="border:1px solid var(--border);background:transparent;color:var(--muted)" onclick="closePinChange()">취소</button>
+      <button style="border:none;background:var(--accent);color:#fff;font-weight:600" onclick="changePinSubmit()">변경</button>
     </div>
-  </div>
-
-  <!-- Main -->
-  <div id="mainSection" style="display:none">
-    <div class="status-bar">
-      <span class="stxt" id="statusText"></span>
-      <div class="sactions">
-        <button class="btn-sm accent" onclick="refreshData()">🔄 새로고침</button>
-      </div>
-    </div>
-    <div class="search-wrap">
-      <span class="sico">🔍</span>
-      <input type="search" id="searchInput" placeholder="사이트 이름 검색..." oninput="renderResults()" autocomplete="off" autocorrect="off" spellcheck="false">
-    </div>
-    <div id="countLabel" class="count-lbl"></div>
-    <div id="results" class="results"></div>
-    <div class="tip">💡 깃허브 엑셀을 수정하면 🔄 새로고침 버튼으로 최신 데이터를 불러올 수 있어요</div>
   </div>
 </div>
 
 <script>
-let allData=[], rawRows=[], headers=[], cfg={};
+const LOCK_KEY='pv_pin',DATA_KEY='pv_data';
+let pinInput='',pinStep='verify',pinFirst='',wrongCount=0,data=[],editIdx=-1,lockTimer;
 
-function loadConfig(){
-  try{ const s=localStorage.getItem('pwvault_cfg'); if(s) cfg=JSON.parse(s); }catch(e){}
-}
-function saveConfig(){
-  try{ localStorage.setItem('pwvault_cfg',JSON.stringify(cfg)); }catch(e){}
-}
+async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
+function getPin(){try{return localStorage.getItem(LOCK_KEY);}catch(e){return null;}}
+async function savePin(p){try{localStorage.setItem(LOCK_KEY,await sha256(p));}catch(e){}}
+function loadData(){try{const s=localStorage.getItem(DATA_KEY);data=s?JSON.parse(s):[];}catch(e){data=[];}}
+function saveData(){try{localStorage.setItem(DATA_KEY,JSON.stringify(data));}catch(e){}}
 
-function init(){
-  loadConfig();
-  if(cfg.user && cfg.repo && cfg.file){
-    fetchExcel();
+function initPin(){
+  const stored=getPin();
+  if(!stored){
+    pinStep='set1';
+    document.getElementById('pinIcon').textContent='🔐';
+    document.getElementById('pinTitle').textContent='PIN 설정';
+    document.getElementById('pinSub').textContent='처음 사용하시네요!\n4자리 PIN을 설정해 주세요';
+    document.getElementById('pinForget').style.display='none';
+  } else {
+    pinStep='verify';
+    document.getElementById('pinIcon').textContent='🔒';
+    document.getElementById('pinTitle').textContent='잠금 해제';
+    document.getElementById('pinSub').textContent='PIN 4자리를 입력해 주세요';
+    document.getElementById('pinForget').style.display='block';
   }
+  pinInput='';dots();
 }
 
-function showSettings(){
-  hide('mainSection'); hide('loadingSection'); hide('errorSection'); hide('colMapSection');
-  show('setupSection');
-  document.getElementById('settingsBtn').style.display='none';
-  document.getElementById('hdDesc').textContent='깃허브 연동 설정을 해주세요';
-  if(cfg.user) document.getElementById('ghUser').value=cfg.user||'';
-  if(cfg.repo) document.getElementById('ghRepo').value=cfg.repo||'';
-  if(cfg.file) document.getElementById('ghFile').value=cfg.file||'passwords.xlsx';
-  if(cfg.branch) document.getElementById('ghBranch').value=cfg.branch||'main';
-}
+function np(n){if(pinInput.length>=4)return;pinInput+=n;dots();if(pinInput.length===4)setTimeout(processPin,120);}
+function nd(){if(!pinInput.length)return;pinInput=pinInput.slice(0,-1);dots();document.getElementById('pinErr').textContent='';}
+function dots(state){for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.className='pin-dot'+(i<pinInput.length?' filled':'')+(state?' '+state:'');}}
 
-async function connectGitHub(){
-  const user=document.getElementById('ghUser').value.trim();
-  const repo=document.getElementById('ghRepo').value.trim();
-  const file=document.getElementById('ghFile').value.trim()||'passwords.xlsx';
-  const branch=document.getElementById('ghBranch').value.trim()||'main';
-  if(!user||!repo){ alert('깃허브 아이디와 저장소 이름을 입력해 주세요'); return; }
-  cfg={user,repo,file,branch};
-  saveConfig();
-  fetchExcel();
-}
-
-async function fetchExcel(){
-  hide('setupSection'); hide('errorSection'); hide('colMapSection'); hide('mainSection');
-  show('loadingSection');
-  document.getElementById('hdDesc').textContent='파일 불러오는 중...';
-
-  const {user,repo,file,branch='main'}=cfg;
-  // Use cache-busting to always get latest file
-  const url=`https://raw.githubusercontent.com/${user}/${repo}/${branch}/${file}?t=${Date.now()}`;
-
-  try{
-    const res=await fetch(url);
-    if(!res.ok) throw new Error(`파일을 찾을 수 없어요 (${res.status})\n\n확인해 주세요:\n• 깃허브 아이디: ${user}\n• 저장소: ${repo}\n• 파일: ${file}\n• 저장소가 Public인지`);
-    const buf=await res.arrayBuffer();
-    const wb=XLSX.read(buf,{type:'array'});
-    const ws=wb.Sheets[wb.SheetNames[0]];
-    rawRows=XLSX.utils.sheet_to_json(ws,{header:1});
-    if(!rawRows||rawRows.length<2) throw new Error('파일에 데이터가 없어요');
-    headers=(rawRows[0]||[]).map((h,i)=>h?String(h):`열${i+1}`);
-    hide('loadingSection');
-
-    // Check if we have saved column config
-    if(cfg.colSite!=null && cfg.colId!=null && cfg.colPw!=null){
-      buildData();
-    } else {
-      showColMap();
+async function processPin(){
+  if(pinStep==='set1'){
+    pinFirst=pinInput;pinInput='';
+    document.getElementById('pinTitle').textContent='PIN 확인';
+    document.getElementById('pinSub').textContent='한 번 더 입력해 주세요';
+    dots();pinStep='set2';
+  } else if(pinStep==='set2'){
+    if(pinInput===pinFirst){await savePin(pinInput);unlock();}
+    else{
+      dots('error');
+      setTimeout(()=>{
+        document.getElementById('pinErr').textContent='PIN이 일치하지 않아요. 다시 설정해 주세요';
+        pinFirst='';pinInput='';pinStep='set1';
+        document.getElementById('pinTitle').textContent='PIN 설정';
+        document.getElementById('pinSub').textContent='4자리 PIN을 설정해 주세요';
+        dots();
+      },500);
     }
-  } catch(err){
-    hide('loadingSection');
-    show('errorSection');
-    document.getElementById('errMsg').innerHTML='⚠️ '+err.message.replace(/\n/g,'<br>');
-    document.getElementById('settingsBtn').style.display='flex';
-    document.getElementById('hdDesc').textContent='연결 오류';
+  } else {
+    const h=await sha256(pinInput);
+    if(h===getPin()){wrongCount=0;unlock();}
+    else{
+      wrongCount++;dots('error');
+      document.getElementById('pinErr').textContent=wrongCount>=5?'PIN 5회 오류 — 10초 대기':`PIN이 틀렸어요 (${wrongCount}/5)`;
+      if(wrongCount>=5){
+        document.querySelectorAll('.num-btn').forEach(b=>b.disabled=true);
+        let s=10;const t=setInterval(()=>{s--;if(s<=0){clearInterval(t);document.querySelectorAll('.num-btn').forEach(b=>b.disabled=false);document.getElementById('pinErr').textContent='';wrongCount=0;}},1000);
+      }
+      setTimeout(()=>{pinInput='';dots();},600);
+    }
   }
 }
 
-function showColMap(){
-  const ids=['colSite','colId','colPw'];
-  ids.forEach((id,di)=>{
-    const sel=document.getElementById(id);
-    sel.innerHTML=headers.map((h,i)=>`<option value="${i}">${h}</option>`).join('');
-    if(di<headers.length) sel.value=di;
-  });
-  const kw={
-    colSite:['사이트','site','url','주소','이름','name','서비스'],
-    colId:['아이디','id','이메일','email','계정','account','username'],
-    colPw:['비밀번호','password','pw','pass','패스워드']
-  };
-  Object.entries(kw).forEach(([sid,words])=>{
-    const idx=headers.findIndex(h=>words.some(w=>h.toLowerCase().includes(w)));
-    if(idx>=0) document.getElementById(sid).value=idx;
-  });
-  show('colMapSection');
-  document.getElementById('hdDesc').textContent='열 설정';
+function unlock(){
+  document.getElementById('pinScreen').style.display='none';
+  document.getElementById('appScreen').style.display='block';
+  loadData();render();resetTimer();
 }
 
-function confirmColumns(){
-  cfg.colSite=parseInt(document.getElementById('colSite').value);
-  cfg.colId=parseInt(document.getElementById('colId').value);
-  cfg.colPw=parseInt(document.getElementById('colPw').value);
-  saveConfig();
-  hide('colMapSection');
-  buildData();
+function lockApp(){
+  document.getElementById('appScreen').style.display='none';
+  document.getElementById('pinScreen').style.display='flex';
+  document.getElementById('editModal').classList.remove('open');
+  document.getElementById('menuModal').classList.remove('open');
+  pinInput='';pinStep='verify';wrongCount=0;
+  document.getElementById('pinIcon').textContent='🔒';
+  document.getElementById('pinTitle').textContent='잠금 해제';
+  document.getElementById('pinSub').textContent='PIN 4자리를 입력해 주세요';
+  document.getElementById('pinErr').textContent='';
+  document.getElementById('pinForget').style.display='block';
+  dots();
 }
 
-function buildData(){
-  const {colSite,colId,colPw}=cfg;
-  allData=rawRows.slice(1).filter(r=>r&&r[colSite]!=null&&String(r[colSite]).trim()).map(r=>({
-    site:String(r[colSite]||'').trim(),
-    id:String(r[colId]||'').trim(),
-    pw:String(r[colPw]||'').trim(),
-  }));
-  document.getElementById('statusText').textContent=`✅ ${allData.length}개 · ${cfg.file}`;
-  document.getElementById('hdDesc').textContent=`${cfg.repo} / ${cfg.file}`;
-  document.getElementById('settingsBtn').style.display='flex';
-  show('mainSection');
-  renderResults();
+function forgetPin(){
+  if(!confirm('PIN을 초기화하면 저장된 데이터도 모두 지워져요.\n계속할까요?'))return;
+  try{localStorage.removeItem(LOCK_KEY);localStorage.removeItem(DATA_KEY);}catch(e){}
+  data=[];pinFirst='';pinInput='';pinStep='set1';wrongCount=0;
+  document.getElementById('pinIcon').textContent='🔐';
+  document.getElementById('pinTitle').textContent='PIN 설정';
+  document.getElementById('pinSub').textContent='새 PIN 4자리를 설정해 주세요';
+  document.getElementById('pinErr').textContent='';
+  document.getElementById('pinForget').style.display='none';
+  dots();
 }
 
-function refreshData(){
-  const btn=document.querySelector('.btn-sm.accent');
-  if(btn){btn.textContent='불러오는 중...';btn.disabled=true;}
-  hide('mainSection');
-  fetchExcel().then(()=>{
-    if(btn){btn.textContent='🔄 새로고침';btn.disabled=false;}
-  }).catch(()=>{
-    if(btn){btn.textContent='🔄 새로고침';btn.disabled=false;}
-  });
-}
+function resetTimer(){clearTimeout(lockTimer);lockTimer=setTimeout(lockApp,3*60*1000);}
+['touchstart','click','keydown'].forEach(e=>document.addEventListener(e,()=>{if(document.getElementById('appScreen').style.display!=='none')resetTimer();},{passive:true}));
 
-function renderResults(){
+function render(){
   const q=(document.getElementById('searchInput').value||'').toLowerCase().trim();
-  const list=q?allData.filter(d=>d.site.toLowerCase().includes(q)||d.id.toLowerCase().includes(q)):allData;
-  document.getElementById('countLabel').textContent=q?`"${q}" 검색 결과 ${list.length}개`:`전체 ${allData.length}개`;
-  const container=document.getElementById('results');
-  if(!list.length){
-    container.innerHTML=`<div class="empty"><div class="eico">🔎</div>검색 결과가 없어요</div>`;
-    return;
+  const list=q?data.filter(d=>d.site.toLowerCase().includes(q)||d.id.toLowerCase().includes(q)):data;
+  document.getElementById('countLabel').textContent=q?`"${q}" 검색 결과 ${list.length}개`:`전체 ${data.length}개`;
+  const C=document.getElementById('results');
+  if(!data.length){
+    C.innerHTML=`<div class="empty"><div class="eico">🗝</div><p>저장된 항목이 없어요</p><button class="empty-btn" onclick="openAdd()">첫 항목 추가하기</button></div>`;return;
   }
-  container.innerHTML=list.map((d,i)=>`
-    <div class="card">
-      <div class="card-hd">
-        <div class="site-ico">${esc(d.site.charAt(0).toUpperCase())}</div>
-        <span class="site-name">${esc(d.site)}</span>
-      </div>
-      <div class="field-row">
-        <span class="flbl">ID</span>
-        <span class="fval">${esc(d.id)||'<span style="color:var(--hint)">없음</span>'}</span>
-        <div class="faction"><button class="btn-a" onclick="cp('${ea(d.id)}',this)">복사</button></div>
-      </div>
-      <div class="field-row">
-        <span class="flbl">PW</span>
-        <span class="fval" id="pv${i}">••••••••</span>
-        <div class="faction">
-          <button class="btn-a" id="pb${i}" onclick="tp('${ea(d.pw)}',${i})">보기</button>
-          <button class="btn-a" onclick="cp('${ea(d.pw)}',this)">복사</button>
-        </div>
-      </div>
-    </div>`).join('');
+  if(!list.length){C.innerHTML=`<div class="empty"><div class="eico">🔎</div><p>검색 결과가 없어요</p></div>`;return;}
+  C.innerHTML=list.map(d=>{
+    const ri=data.indexOf(d);
+    return `<div class="card">
+      <div class="card-hd"><div class="site-ico">${esc(d.site.charAt(0).toUpperCase())}</div><span class="site-name">${esc(d.site)}</span><button class="card-edit-btn" onclick="openEdit(${ri})">✏️ 수정</button></div>
+      <div class="field-row"><span class="flbl">ID</span><span class="fval">${esc(d.id)||'<span style="color:var(--hint)">없음</span>'}</span><div class="faction"><button class="btn-a" onclick="cp('${ea(d.id)}',this)">복사</button></div></div>
+      <div class="field-row"><span class="flbl">PW</span><span class="fval" id="pv${ri}">••••••••</span><div class="faction"><button class="btn-a" id="pb${ri}" onclick="tp('${ea(d.pw)}',${ri})">보기</button><button class="btn-a" onclick="cp('${ea(d.pw)}',this)">복사</button></div></div>
+      ${d.note?`<div class="field-row"><span class="flbl">메모</span><span class="fval" style="color:var(--muted);font-weight:400">${esc(d.note)}</span></div>`:''}
+    </div>`;
+  }).join('');
 }
 
-function tp(pw,i){
-  const el=document.getElementById('pv'+i),btn=document.getElementById('pb'+i);
-  if(btn.textContent==='보기'){el.textContent=pw;btn.textContent='숨기기';btn.classList.add('ok');}
-  else{el.textContent='••••••••';btn.textContent='보기';btn.classList.remove('ok');}
+function openAdd(){editIdx=-1;document.getElementById('modalTitle').textContent='새 항목 추가';['fSite','fId','fPw','fNote'].forEach(id=>document.getElementById(id).value='');document.getElementById('delBtn').style.display='none';document.getElementById('editModal').classList.add('open');setTimeout(()=>document.getElementById('fSite').focus(),120);}
+function openEdit(i){editIdx=i;const d=data[i];document.getElementById('modalTitle').textContent='항목 수정';document.getElementById('fSite').value=d.site||'';document.getElementById('fId').value=d.id||'';document.getElementById('fPw').value=d.pw||'';document.getElementById('fNote').value=d.note||'';document.getElementById('delBtn').style.display='block';document.getElementById('editModal').classList.add('open');}
+function closeEdit(){document.getElementById('editModal').classList.remove('open');}
+function saveEntry(){
+  const site=document.getElementById('fSite').value.trim();
+  if(!site){alert('사이트 이름을 입력해 주세요');return;}
+  const entry={site,id:document.getElementById('fId').value.trim(),pw:document.getElementById('fPw').value.trim(),note:document.getElementById('fNote').value.trim(),updated:Date.now()};
+  if(editIdx>=0){data[editIdx]=entry;}else{data.unshift(entry);}
+  saveData();closeEdit();render();
 }
-function cp(val,btn){
-  const done=()=>{const o=btn.textContent;btn.textContent='완료!';btn.classList.add('ok');setTimeout(()=>{btn.textContent=o;btn.classList.remove('ok');},1500);};
-  if(navigator.clipboard){navigator.clipboard.writeText(val).then(done);}
-  else{const t=document.createElement('textarea');t.value=val;t.style.cssText='position:fixed;opacity:0';document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);done();}
+function deleteEntry(){if(!confirm(`"${data[editIdx].site}" 항목을 삭제할까요?`))return;data.splice(editIdx,1);saveData();closeEdit();render();}
+
+function openMenu(){document.getElementById('menuModal').classList.add('open');}
+function closeMenu(){document.getElementById('menuModal').classList.remove('open');}
+
+function exportJSON(){
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='passwords_backup_'+new Date().toISOString().slice(0,10)+'.json';a.click();closeMenu();
 }
+function exportCSV(){
+  const rows=[['사이트','아이디','비밀번호','메모'],...data.map(d=>[d.site,d.id,d.pw,d.note||''])];
+  const csv=rows.map(r=>r.map(c=>'"'+(c||'').replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='passwords_'+new Date().toISOString().slice(0,10)+'.csv';a.click();closeMenu();
+}
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const imp=JSON.parse(ev.target.result);
+      if(!Array.isArray(imp))throw new Error();
+      if(!confirm(`${imp.length}개 항목을 가져올까요? 기존 데이터와 합쳐져요.`))return;
+      imp.forEach(item=>{if(item.site&&!data.find(d=>d.site===item.site&&d.id===item.id))data.push(item);});
+      saveData();render();closeMenu();alert(`✅ ${imp.length}개 항목을 가져왔어요!`);
+    }catch(err){alert('올바른 백업 파일이 아니에요.');}
+  };
+  reader.readAsText(file);e.target.value='';
+}
+function clearAll(){if(!confirm('모든 데이터를 삭제할까요?\n이 작업은 되돌릴 수 없어요.'))return;data=[];saveData();render();closeMenu();}
+
+function openPinChange(){['curPin','newPin','newPin2'].forEach(id=>document.getElementById(id).value='');document.getElementById('pmErr').textContent='';document.getElementById('pinChangeModal').classList.add('open');}
+function closePinChange(){document.getElementById('pinChangeModal').classList.remove('open');}
+async function changePinSubmit(){
+  const cur=document.getElementById('curPin').value.trim(),nw=document.getElementById('newPin').value.trim(),nw2=document.getElementById('newPin2').value.trim(),err=document.getElementById('pmErr');
+  err.textContent='';
+  if(!cur||!nw||!nw2){err.textContent='모든 항목을 입력해 주세요';return;}
+  if(!/^\d{4}$/.test(nw)){err.textContent='PIN은 숫자 4자리여야 해요';return;}
+  if(nw!==nw2){err.textContent='새 PIN이 일치하지 않아요';return;}
+  if(await sha256(cur)!==getPin()){err.textContent='현재 PIN이 틀렸어요';return;}
+  await savePin(nw);closePinChange();alert('✅ PIN이 변경됐어요!');
+}
+
+function tp(pw,i){const el=document.getElementById('pv'+i),btn=document.getElementById('pb'+i);if(!el||!btn)return;if(btn.textContent==='보기'){el.textContent=pw;btn.textContent='숨기기';btn.classList.add('ok');}else{el.textContent='••••••••';btn.textContent='보기';btn.classList.remove('ok');}}
+function cp(val,btn){const done=()=>{const o=btn.textContent;btn.textContent='완료!';btn.classList.add('ok');setTimeout(()=>{btn.textContent=o;btn.classList.remove('ok');},1500);};if(navigator.clipboard){navigator.clipboard.writeText(val).then(done).catch(()=>fb(val,done));}else{fb(val,done);}}
+function fb(val,cb){const t=document.createElement('textarea');t.value=val;t.style.cssText='position:fixed;opacity:0';document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);cb();}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function ea(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
-function show(id){document.getElementById(id).style.display='block';}
-function hide(id){document.getElementById(id).style.display='none';}
 
-init();
+document.getElementById('editModal').addEventListener('click',function(e){if(e.target===this)closeEdit();});
+document.getElementById('menuModal').addEventListener('click',function(e){if(e.target===this)closeMenu();});
+
+initPin();
 </script>
 </body>
 </html>
