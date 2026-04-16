@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🔑 비밀번호 보관함</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:#f4f3ef;--surface:#fff;--surface2:#f0efe9;--border:#e2e0d8;
+  --text:#1a1a18;--muted:#7a7972;--hint:#b0afa6;
+  --accent:#2d6a4f;--accent-bg:#e8f4ee;--accent-light:#c8e6d4;
+  --danger:#c0392b;--danger-bg:#fdecea;
+  --r:14px;--rs:8px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#181816;--surface:#222220;--surface2:#2a2a27;--border:#38382e;
+  --text:#f0efe8;--muted:#88877e;--hint:#55554c;
+  --accent:#52b788;--accent-bg:#1a2e22;--accent-light:#1e3d2a;
+  --danger:#e57373;--danger-bg:#2e1a1a;
+}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.app{max-width:480px;margin:0 auto;padding:28px 16px 60px}
+
+/* Header */
+.hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px}
+.hd h1{font-size:21px;font-weight:700;letter-spacing:-.5px}
+.hd p{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.5}
+.btn-icon{background:none;border:1px solid var(--border);border-radius:var(--rs);padding:6px 10px;font-size:13px;color:var(--muted);cursor:pointer}
+.btn-icon:active{background:var(--surface2)}
+
+/* Setup card */
+.setup-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px}
+.setup-card h3{font-size:15px;font-weight:600;margin-bottom:4px}
+.setup-card .desc{font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.6}
+.field{margin-bottom:14px}
+.field label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px}
+.field input,.field select{
+  width:100%;padding:11px 12px;font-size:14px;
+  border:1px solid var(--border);border-radius:var(--rs);
+  background:var(--surface2);color:var(--text);
+  -webkit-appearance:none;
+}
+.field input:focus,.field select:focus{outline:none;border-color:var(--accent)}
+.field .hint{font-size:11px;color:var(--hint);margin-top:4px}
+.btn-primary{
+  width:100%;padding:13px;background:var(--accent);color:#fff;
+  border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer;
+}
+.btn-primary:active{opacity:.85}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+
+/* Col mapping */
+.col-map{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:16px}
+.col-map h3{font-size:15px;font-weight:600;margin-bottom:4px}
+.col-map .desc{font-size:12px;color:var(--muted);margin-bottom:16px}
+.col-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.col-row label{font-size:12px;color:var(--muted);width:60px;flex-shrink:0}
+.col-row select{flex:1;padding:8px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--rs);background:var(--surface2);color:var(--text)}
+
+/* Status bar */
+.status-bar{display:flex;align-items:center;justify-content:space-between;background:var(--accent-bg);border:1px solid var(--accent-light);border-radius:var(--rs);padding:10px 14px;margin-bottom:14px}
+.status-bar .stxt{font-size:13px;color:var(--accent);font-weight:600}
+.status-bar .sactions{display:flex;gap:8px;align-items:center}
+.btn-sm{padding:5px 10px;font-size:12px;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--muted);cursor:pointer;white-space:nowrap}
+.btn-sm:active{background:var(--surface2)}
+.btn-sm.accent{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+
+/* Search */
+.search-wrap{position:relative;margin-bottom:10px}
+.search-wrap input{width:100%;padding:13px 14px 13px 42px;border:1px solid var(--border);border-radius:var(--r);font-size:16px;background:var(--surface);color:var(--text);-webkit-appearance:none}
+.search-wrap input:focus{outline:none;border-color:var(--accent)}
+.sico{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none}
+.count-lbl{font-size:12px;color:var(--hint);margin-bottom:12px;padding-left:2px}
+
+/* Cards */
+.results{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.card-hd{padding:12px 14px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.site-ico{width:24px;height:24px;border-radius:6px;background:var(--accent-bg);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.site-name{font-size:14px;font-weight:600}
+.field-row{display:flex;align-items:center;padding:10px 14px;gap:8px}
+.field-row+.field-row{border-top:1px solid var(--border)}
+.flbl{font-size:11px;color:var(--hint);width:50px;flex-shrink:0;letter-spacing:.4px;text-transform:uppercase}
+.fval{flex:1;font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.faction{display:flex;gap:5px;flex-shrink:0}
+.btn-a{padding:5px 10px;font-size:12px;border:1px solid var(--border);border-radius:20px;background:var(--surface2);color:var(--muted);cursor:pointer;white-space:nowrap}
+.btn-a:active{background:var(--border)}
+.btn-a.ok{color:var(--accent);border-color:var(--accent);background:var(--accent-bg)}
+
+.empty{text-align:center;padding:48px 16px;color:var(--hint);font-size:15px}
+.empty .eico{font-size:36px;margin-bottom:10px}
+
+/* Loading */
+.loading{text-align:center;padding:40px 16px}
+.spinner{width:28px;height:28px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;margin:0 auto 12px;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading p{font-size:14px;color:var(--muted)}
+
+/* Error */
+.err-box{background:var(--danger-bg);border:1px solid var(--danger);border-radius:var(--rs);padding:14px;font-size:13px;color:var(--danger);margin-bottom:14px;line-height:1.6}
+
+.tip{background:var(--surface2);border-radius:var(--rs);padding:12px 14px;font-size:12px;color:var(--muted);margin-top:20px;line-height:1.6}
+
+/* Steps */
+.steps{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:16px}
+.steps h3{font-size:14px;font-weight:600;margin-bottom:14px}
+.step{display:flex;gap:10px;margin-bottom:12px;align-items:flex-start}
+.step:last-child{margin-bottom:0}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.step-txt{font-size:13px;color:var(--muted);line-height:1.6;flex:1}
+.step-txt strong{color:var(--text);font-weight:600}
+.step-txt code{font-size:12px;background:var(--surface2);padding:1px 5px;border-radius:4px;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hd">
+    <div>
+      <h1>🔑 비밀번호 보관함</h1>
+      <p id="hdDesc">깃허브 연동 설정을 해주세요</p>
+    </div>
+    <button class="btn-icon" id="settingsBtn" onclick="showSettings()" style="display:none">⚙️ 설정</button>
+  </div>
+
+  <!-- Setup -->
+  <div id="setupSection">
+    <div class="steps">
+      <h3>📋 준비 방법</h3>
+      <div class="step"><div class="step-num">1</div><div class="step-txt">깃허브에서 <strong>새 저장소(repository)</strong>를 만들어요 <br>예: <code>my-passwords</code></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-txt">저장소에 엑셀 파일을 업로드해요 <br>예: <code>passwords.xlsx</code></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-txt">아래에 <strong>깃허브 아이디</strong>, <strong>저장소 이름</strong>, <strong>파일 이름</strong>을 입력해요</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-txt">이 앱도 같은 저장소에 <code>index.html</code>로 올리면 링크로 접속 가능!</div></div>
+    </div>
+
+    <div class="setup-card">
+      <h3>🔗 깃허브 연동 설정</h3>
+      <div class="desc">엑셀 파일이 있는 깃허브 저장소 정보를 입력해 주세요</div>
+      <div class="field">
+        <label>깃허브 아이디 (username)</label>
+        <input type="text" id="ghUser" placeholder="예: honggildong" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label>저장소 이름 (repository)</label>
+        <input type="text" id="ghRepo" placeholder="예: my-passwords" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label>엑셀 파일 이름</label>
+        <input type="text" id="ghFile" placeholder="예: passwords.xlsx" value="passwords.xlsx" autocomplete="off" autocorrect="off" spellcheck="false">
+        <div class="hint">저장소 최상위 폴더에 있는 파일 이름</div>
+      </div>
+      <div class="field">
+        <label>브랜치 이름 (보통 main 또는 master)</label>
+        <input type="text" id="ghBranch" placeholder="main" value="main" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+      <button class="btn-primary" id="connectBtn" onclick="connectGitHub()">연동하고 파일 불러오기</button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loadingSection" style="display:none">
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>깃허브에서 파일을 불러오는 중...</p>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div id="errorSection" style="display:none">
+    <div class="err-box" id="errMsg"></div>
+    <button class="btn-primary" onclick="showSettings()">설정 다시 하기</button>
+  </div>
+
+  <!-- Column mapping -->
+  <div id="colMapSection" style="display:none">
+    <div class="col-map">
+      <h3>📋 열 설정</h3>
+      <div class="desc">엑셀의 어떤 열이 어떤 정보인지 선택해 주세요 (한 번만 하면 기억해요)</div>
+      <div class="col-row"><label>사이트명</label><select id="colSite"></select></div>
+      <div class="col-row"><label>아이디</label><select id="colId"></select></div>
+      <div class="col-row"><label>비밀번호</label><select id="colPw"></select></div>
+      <button class="btn-primary" onclick="confirmColumns()">확인</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div id="mainSection" style="display:none">
+    <div class="status-bar">
+      <span class="stxt" id="statusText"></span>
+      <div class="sactions">
+        <button class="btn-sm accent" onclick="refreshData()">🔄 새로고침</button>
+      </div>
+    </div>
+    <div class="search-wrap">
+      <span class="sico">🔍</span>
+      <input type="search" id="searchInput" placeholder="사이트 이름 검색..." oninput="renderResults()" autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+    <div id="countLabel" class="count-lbl"></div>
+    <div id="results" class="results"></div>
+    <div class="tip">💡 깃허브 엑셀을 수정하면 🔄 새로고침 버튼으로 최신 데이터를 불러올 수 있어요</div>
+  </div>
+</div>
+
+<script>
+let allData=[], rawRows=[], headers=[], cfg={};
+
+function loadConfig(){
+  try{ const s=localStorage.getItem('pwvault_cfg'); if(s) cfg=JSON.parse(s); }catch(e){}
+}
+function saveConfig(){
+  try{ localStorage.setItem('pwvault_cfg',JSON.stringify(cfg)); }catch(e){}
+}
+
+function init(){
+  loadConfig();
+  if(cfg.user && cfg.repo && cfg.file){
+    fetchExcel();
+  }
+}
+
+function showSettings(){
+  hide('mainSection'); hide('loadingSection'); hide('errorSection'); hide('colMapSection');
+  show('setupSection');
+  document.getElementById('settingsBtn').style.display='none';
+  document.getElementById('hdDesc').textContent='깃허브 연동 설정을 해주세요';
+  if(cfg.user) document.getElementById('ghUser').value=cfg.user||'';
+  if(cfg.repo) document.getElementById('ghRepo').value=cfg.repo||'';
+  if(cfg.file) document.getElementById('ghFile').value=cfg.file||'passwords.xlsx';
+  if(cfg.branch) document.getElementById('ghBranch').value=cfg.branch||'main';
+}
+
+async function connectGitHub(){
+  const user=document.getElementById('ghUser').value.trim();
+  const repo=document.getElementById('ghRepo').value.trim();
+  const file=document.getElementById('ghFile').value.trim()||'passwords.xlsx';
+  const branch=document.getElementById('ghBranch').value.trim()||'main';
+  if(!user||!repo){ alert('깃허브 아이디와 저장소 이름을 입력해 주세요'); return; }
+  cfg={user,repo,file,branch};
+  saveConfig();
+  fetchExcel();
+}
+
+async function fetchExcel(){
+  hide('setupSection'); hide('errorSection'); hide('colMapSection'); hide('mainSection');
+  show('loadingSection');
+  document.getElementById('hdDesc').textContent='파일 불러오는 중...';
+
+  const {user,repo,file,branch='main'}=cfg;
+  // Use cache-busting to always get latest file
+  const url=`https://raw.githubusercontent.com/${user}/${repo}/${branch}/${file}?t=${Date.now()}`;
+
+  try{
+    const res=await fetch(url);
+    if(!res.ok) throw new Error(`파일을 찾을 수 없어요 (${res.status})\n\n확인해 주세요:\n• 깃허브 아이디: ${user}\n• 저장소: ${repo}\n• 파일: ${file}\n• 저장소가 Public인지`);
+    const buf=await res.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    rawRows=XLSX.utils.sheet_to_json(ws,{header:1});
+    if(!rawRows||rawRows.length<2) throw new Error('파일에 데이터가 없어요');
+    headers=(rawRows[0]||[]).map((h,i)=>h?String(h):`열${i+1}`);
+    hide('loadingSection');
+
+    // Check if we have saved column config
+    if(cfg.colSite!=null && cfg.colId!=null && cfg.colPw!=null){
+      buildData();
+    } else {
+      showColMap();
+    }
+  } catch(err){
+    hide('loadingSection');
+    show('errorSection');
+    document.getElementById('errMsg').innerHTML='⚠️ '+err.message.replace(/\n/g,'<br>');
+    document.getElementById('settingsBtn').style.display='flex';
+    document.getElementById('hdDesc').textContent='연결 오류';
+  }
+}
+
+function showColMap(){
+  const ids=['colSite','colId','colPw'];
+  ids.forEach((id,di)=>{
+    const sel=document.getElementById(id);
+    sel.innerHTML=headers.map((h,i)=>`<option value="${i}">${h}</option>`).join('');
+    if(di<headers.length) sel.value=di;
+  });
+  const kw={
+    colSite:['사이트','site','url','주소','이름','name','서비스'],
+    colId:['아이디','id','이메일','email','계정','account','username'],
+    colPw:['비밀번호','password','pw','pass','패스워드']
+  };
+  Object.entries(kw).forEach(([sid,words])=>{
+    const idx=headers.findIndex(h=>words.some(w=>h.toLowerCase().includes(w)));
+    if(idx>=0) document.getElementById(sid).value=idx;
+  });
+  show('colMapSection');
+  document.getElementById('hdDesc').textContent='열 설정';
+}
+
+function confirmColumns(){
+  cfg.colSite=parseInt(document.getElementById('colSite').value);
+  cfg.colId=parseInt(document.getElementById('colId').value);
+  cfg.colPw=parseInt(document.getElementById('colPw').value);
+  saveConfig();
+  hide('colMapSection');
+  buildData();
+}
+
+function buildData(){
+  const {colSite,colId,colPw}=cfg;
+  allData=rawRows.slice(1).filter(r=>r&&r[colSite]!=null&&String(r[colSite]).trim()).map(r=>({
+    site:String(r[colSite]||'').trim(),
+    id:String(r[colId]||'').trim(),
+    pw:String(r[colPw]||'').trim(),
+  }));
+  document.getElementById('statusText').textContent=`✅ ${allData.length}개 · ${cfg.file}`;
+  document.getElementById('hdDesc').textContent=`${cfg.repo} / ${cfg.file}`;
+  document.getElementById('settingsBtn').style.display='flex';
+  show('mainSection');
+  renderResults();
+}
+
+function refreshData(){
+  const btn=document.querySelector('.btn-sm.accent');
+  if(btn){btn.textContent='불러오는 중...';btn.disabled=true;}
+  hide('mainSection');
+  fetchExcel().then(()=>{
+    if(btn){btn.textContent='🔄 새로고침';btn.disabled=false;}
+  }).catch(()=>{
+    if(btn){btn.textContent='🔄 새로고침';btn.disabled=false;}
+  });
+}
+
+function renderResults(){
+  const q=(document.getElementById('searchInput').value||'').toLowerCase().trim();
+  const list=q?allData.filter(d=>d.site.toLowerCase().includes(q)||d.id.toLowerCase().includes(q)):allData;
+  document.getElementById('countLabel').textContent=q?`"${q}" 검색 결과 ${list.length}개`:`전체 ${allData.length}개`;
+  const container=document.getElementById('results');
+  if(!list.length){
+    container.innerHTML=`<div class="empty"><div class="eico">🔎</div>검색 결과가 없어요</div>`;
+    return;
+  }
+  container.innerHTML=list.map((d,i)=>`
+    <div class="card">
+      <div class="card-hd">
+        <div class="site-ico">${esc(d.site.charAt(0).toUpperCase())}</div>
+        <span class="site-name">${esc(d.site)}</span>
+      </div>
+      <div class="field-row">
+        <span class="flbl">ID</span>
+        <span class="fval">${esc(d.id)||'<span style="color:var(--hint)">없음</span>'}</span>
+        <div class="faction"><button class="btn-a" onclick="cp('${ea(d.id)}',this)">복사</button></div>
+      </div>
+      <div class="field-row">
+        <span class="flbl">PW</span>
+        <span class="fval" id="pv${i}">••••••••</span>
+        <div class="faction">
+          <button class="btn-a" id="pb${i}" onclick="tp('${ea(d.pw)}',${i})">보기</button>
+          <button class="btn-a" onclick="cp('${ea(d.pw)}',this)">복사</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function tp(pw,i){
+  const el=document.getElementById('pv'+i),btn=document.getElementById('pb'+i);
+  if(btn.textContent==='보기'){el.textContent=pw;btn.textContent='숨기기';btn.classList.add('ok');}
+  else{el.textContent='••••••••';btn.textContent='보기';btn.classList.remove('ok');}
+}
+function cp(val,btn){
+  const done=()=>{const o=btn.textContent;btn.textContent='완료!';btn.classList.add('ok');setTimeout(()=>{btn.textContent=o;btn.classList.remove('ok');},1500);};
+  if(navigator.clipboard){navigator.clipboard.writeText(val).then(done);}
+  else{const t=document.createElement('textarea');t.value=val;t.style.cssText='position:fixed;opacity:0';document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);done();}
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function ea(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+function show(id){document.getElementById(id).style.display='block';}
+function hide(id){document.getElementById(id).style.display='none';}
+
+init();
+</script>
+</body>
+</html>
