@@ -161,14 +161,14 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;b
     <div class="menu-list">
       <div class="section-title">엑셀 가져오기</div>
       <button class="menu-btn" onclick="document.getElementById('xlsxFile').click()">📊 엑셀 파일 가져오기 (.xlsx)</button>
-      <input type="file" id="xlsxFile" accept=".xlsx,.xls" style="display:none" onchange="startXlsxImport(event)">
+      <input type="file" id="xlsxFile" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,*/*" style="display:none" onchange="startXlsxImport(event)">
 
       <div class="divider"></div>
       <div class="section-title">백업 / 복원</div>
       <button class="menu-btn" onclick="exportJSON()">📤 백업 (JSON 내보내기)</button>
       <button class="menu-btn" onclick="document.getElementById('importFile').click()">📥 복원 (JSON 가져오기)</button>
       <button class="menu-btn" onclick="exportCSV()">📋 CSV로 내보내기 (엑셀용)</button>
-      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+      <input type="file" id="importFile" accept=".json,application/json,*/*" style="display:none" onchange="importJSON(event)">
 
       <div class="divider"></div>
       <button class="menu-btn" onclick="closeMenu();openPinChange()">🔑 PIN 변경</button>
