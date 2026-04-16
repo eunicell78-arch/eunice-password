@@ -10,22 +10,22 @@
 @media(prefers-color-scheme:dark){:root{--bg:#181816;--surface:#222220;--surface2:#2a2a27;--border:#38382e;--text:#f0efe8;--muted:#88877e;--hint:#55554c;--accent:#52b788;--accent-bg:#1a2e22;--accent-light:#1e3d2a;--danger:#e57373;--danger-bg:#2e1a1a}}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;width:100%}
-#pinScreen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;padding:24px;width:100%;overflow:hidden}
-.pin-icon{font-size:48px;margin-bottom:16px}
-.pin-title{font-size:20px;font-weight:700;margin-bottom:6px}
-.pin-sub{font-size:14px;color:var(--muted);margin-bottom:32px;text-align:center;line-height:1.6;white-space:pre-line}
-.pin-dots{display:flex;gap:14px;margin-bottom:28px}
-.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border);transition:all .15s}
+#pinScreen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;padding:16px;width:100%;overflow:hidden}
+.pin-icon{font-size:36px;margin-bottom:10px}
+.pin-title{font-size:18px;font-weight:700;margin-bottom:4px}
+.pin-sub{font-size:13px;color:var(--muted);margin-bottom:20px;text-align:center;line-height:1.5;white-space:pre-line}
+.pin-dots{display:flex;gap:12px;margin-bottom:20px}
+.pin-dot{width:13px;height:13px;border-radius:50%;border:2px solid var(--border);transition:all .15s}
 .pin-dot.filled{background:var(--accent);border-color:var(--accent)}
 .pin-dot.error{background:var(--danger);border-color:var(--danger)}
-.pin-err{font-size:13px;color:var(--danger);margin-bottom:16px;min-height:18px;text-align:center}
-.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:280px;margin:0 auto}
-.num-btn{aspect-ratio:1;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:22px;font-weight:500;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;transition:transform .1s,background .1s}
+.pin-err{font-size:12px;color:var(--danger);margin-bottom:12px;min-height:16px;text-align:center}
+.numpad{display:grid;grid-template-columns:repeat(3,72px);gap:10px;margin:0 auto}
+.num-btn{width:72px;height:72px;border-radius:50%;border:1px solid var(--border);background:var(--surface);font-size:20px;font-weight:500;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;transition:transform .1s,background .1s}
 .num-btn:active{background:var(--surface2);transform:scale(.93)}
-.num-btn.del{font-size:18px;color:var(--muted)}
+.num-btn.del{font-size:16px;color:var(--muted)}
 .num-btn.empty{border:none;background:transparent;cursor:default}
 .num-btn:disabled{opacity:.4;cursor:not-allowed}
-.pin-forget{margin-top:24px;font-size:12px;color:var(--hint);text-decoration:underline;cursor:pointer;background:none;border:none}
+.pin-forget{margin-top:16px;font-size:12px;color:var(--hint);text-decoration:underline;cursor:pointer;background:none;border:none}
 #appScreen{display:none}
 .app{max-width:480px;margin:0 auto;padding:28px 16px 80px}
 .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
