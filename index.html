@@ -674,27 +674,27 @@ function startXlsxImport(e){
       const ws=wb.Sheets[wb.SheetNames[0]];
       xlsxRaws=XLSX.utils.sheet_to_json(ws,{header:1});
       if(!xlsxRaws||xlsxRaws.length<2){alert('데이터가 없는 파일이에요');return;}
-      xlsxHdrs=(xlsxRaws[0]||[]).map((h,i)=>h?String(h):`열${i+1}`);
+      // 헤더 공백 제거해서 저장
+      xlsxHdrs=(xlsxRaws[0]||[]).map((h,i)=>h?String(h).trim():`열${i+1}`);
 
-      // 앱 내보내기 형식 자동 감지
-      const isAppExport=['이름','타입','아이디','비밀번호','그룹'].every(k=>xlsxHdrs.includes(k));
+      // 앱 내보내기 형식 감지 — 정확한 이름 매칭
+      const has=(k)=>xlsxHdrs.some(h=>h.trim()===k);
+      const idxOf=(k)=>xlsxHdrs.findIndex(h=>h.trim()===k);
+      const isAppExport=has('이름')&&has('타입')&&has('아이디')&&has('비밀번호')&&has('그룹');
+
       if(isAppExport){
-        // 완전 자동 인식 → 바로 가져오기
-        closeMenu();
-        const imp=xlsxRaws.slice(1).filter(r=>r&&r[0]!=null&&String(r[0]).trim()).map(r=>{
-          const hi=(k)=>xlsxHdrs.indexOf(k);
-          const v=(k)=>String(r[hi(k)]||'').trim();
-          const isBank=v('타입')==='은행';
-          function getOrCreateGroup(gName){
-            if(!gName)return'';
-            let g=groups.find(g=>g.name===gName);
-            if(!g){g={id:'g'+Date.now()+'_'+Math.random().toString(36).slice(2),name:gName,icon:'📁',color:'#2d6a4f'};groups.push(g);}
-            return g.id;
-          }
+        function getOrCreateGroup(gName){
+          if(!gName||!gName.trim())return'';
+          const name=gName.trim();
+          let g=groups.find(g=>g.name===name);
+          if(!g){g={id:'g'+Date.now()+'_'+Math.random().toString(36).slice(2),name,icon:'📁',color:'#2d6a4f'};groups.push(g);}
+          return g.id;
+        }
+        const imp=xlsxRaws.slice(1).filter(r=>r&&r[idxOf('이름')]!=null&&String(r[idxOf('이름')]||'').trim()).map(r=>{
+          const v=(k)=>{const i=idxOf(k);return i>=0?String(r[i]||'').trim():'';};
           return{
-            type:isBank?'bank':'pw',
-            name:v('이름'),
-            id:v('아이디'),pw:v('비밀번호'),
+            type:v('타입')==='은행'?'bank':'pw',
+            name:v('이름'),id:v('아이디'),pw:v('비밀번호'),
             acct:v('계좌번호'),acctPw:v('계좌비번'),
             bankId:v('뱅킹ID'),bankPw:v('뱅킹PW'),
             group:getOrCreateGroup(v('그룹')),
@@ -703,27 +703,35 @@ function startXlsxImport(e){
         });
         if(!imp.length){alert('가져올 데이터가 없어요');return;}
         const dupes=imp.filter(it=>items.find(d=>d.name===it.name&&d.id===it.id)).length;
-        if(!confirm(`${imp.length}개 항목을 자동 인식했어요${dupes?` (중복 ${dupes}개 제외)`:''}\n\n가져올까요?`))return;
+        if(!confirm(`${imp.length}개 항목 자동 인식${dupes?` (중복 ${dupes}개 제외)`:''}\n\n가져올까요?`))return;
         imp.forEach(it=>{if(!items.find(d=>d.name===it.name&&d.id===it.id))items.unshift(it);});
-        saveData();renderGroups();
+        saveData();closeMenu();renderGroups();
         if(document.getElementById('itemScreen').classList.contains('active'))renderItems();
         alert(`✅ ${imp.length-dupes}개 항목을 가져왔어요!`);
         return;
       }
 
-      // 일반 엑셀 → 열 선택 모달
+      // 일반 엑셀 → 열 선택 모달 (정확한 이름 우선, 키워드 차선)
       const noneOpt='<option value="-1">— 없음 —</option>';
-      ['xSite','xId','xPw','xNote'].forEach((id,di)=>{
+      const findCol=(exact,kws)=>{
+        let i=xlsxHdrs.findIndex(h=>exact.includes(h.trim()));
+        if(i<0) i=xlsxHdrs.findIndex(h=>kws.some(w=>h.toLowerCase().includes(w)));
+        return i;
+      };
+      const colMap={
+        xSite: findCol(['이름','사이트명','사이트'],['이름','name','site','url']),
+        xId:   findCol(['아이디','이메일'],['아이디','id','email','계정']),
+        xPw:   findCol(['비밀번호'],['비밀번호','pw','pass','password']),
+        xNote: findCol(['메모'],['메모','note','비고']),
+      };
+      ['xSite','xId','xPw','xNote'].forEach(id=>{
         const sel=document.getElementById(id);
-        sel.innerHTML=(di>=2?noneOpt:'')+xlsxHdrs.map((h,i)=>`<option value="${i}">${h}</option>`).join('');
-        if(di<2) sel.value=di;
-        else sel.value=-1;
+        sel.innerHTML=noneOpt+xlsxHdrs.map((h,i)=>`<option value="${i}">${h}</option>`).join('');
+        sel.value=colMap[id]>=0?colMap[id]:-1;
       });
+      const grpCol=findCol(['그룹'],['그룹','group','분류','category']);
       document.getElementById('xGrpCol').innerHTML=noneOpt+xlsxHdrs.map((h,i)=>`<option value="${i}">${h}</option>`).join('');
-      const grpColIdx=xlsxHdrs.findIndex(h=>['그룹','group','category','분류'].some(w=>h.toLowerCase().includes(w)));
-      document.getElementById('xGrpCol').value=grpColIdx>=0?grpColIdx:-1;
-      const kw={xSite:['사이트','site','url','이름','name'],xId:['아이디','id','이메일','email','계정'],xPw:['비밀번호','pw','pass','password'],xNote:['메모','note','비고']};
-      Object.entries(kw).forEach(([sid,ws])=>{const idx=xlsxHdrs.findIndex(h=>ws.some(w=>h.toLowerCase().includes(w)));if(idx>=0)document.getElementById(sid).value=idx;});
+      document.getElementById('xGrpCol').value=grpCol>=0?grpCol:-1;
       fillGroupSelect('xGroup',false);
       closeMenu();
       document.getElementById('xlsxModal').classList.add('open');
