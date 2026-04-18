@@ -303,7 +303,8 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;b
     <div class="mfield"><label>아이디</label><select id="xId"></select></div>
     <div class="mfield"><label>비밀번호</label><select id="xPw"></select></div>
     <div class="mfield"><label>메모 (선택)</label><select id="xNote"></select></div>
-    <div class="mfield"><label>추가할 그룹</label><select id="xGroup"></select></div>
+    <div class="mfield"><label>그룹 열 (엑셀에 그룹 열이 있으면 선택)</label><select id="xGrpCol"></select></div>
+    <div class="mfield"><label>그룹이 없는 항목에 적용할 그룹</label><select id="xGroup"></select></div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeXlsx()">취소</button>
       <button class="btn-save" onclick="confirmXlsx()">가져오기</button>
@@ -678,6 +679,10 @@ function startXlsxImport(e){
         if(di<2) sel.value=di;
         else sel.value=-1;
       });
+      // 그룹 열 선택
+      document.getElementById('xGrpCol').innerHTML=noneOpt+xlsxHdrs.map((h,i)=>`<option value="${i}">${h}</option>`).join('');
+      const grpColIdx=xlsxHdrs.findIndex(h=>['그룹','group','category','분류'].some(w=>h.toLowerCase().includes(w)));
+      document.getElementById('xGrpCol').value=grpColIdx>=0?grpColIdx:-1;
       const kw={xSite:['사이트','site','url','이름','name'],xId:['아이디','id','이메일','email','계정'],xPw:['비밀번호','pw','pass','password'],xNote:['메모','note','비고']};
       Object.entries(kw).forEach(([sid,ws])=>{const idx=xlsxHdrs.findIndex(h=>ws.some(w=>h.toLowerCase().includes(w)));if(idx>=0)document.getElementById(sid).value=idx;});
       fillGroupSelect('xGroup',false);
@@ -693,11 +698,29 @@ function confirmXlsx(){
   const ii=parseInt(document.getElementById('xId').value);
   const pi=parseInt(document.getElementById('xPw').value);
   const ni=parseInt(document.getElementById('xNote').value);
-  const grp=document.getElementById('xGroup').value||'';
+  const gi=parseInt(document.getElementById('xGrpCol').value); // 그룹 열
+  const defaultGrp=document.getElementById('xGroup').value||'';
   if(si<0){alert('사이트명 열을 선택해 주세요');return;}
+
+  // 엑셀의 그룹명 → 그룹 id 매핑 (없으면 자동 생성)
+  function getOrCreateGroup(gName){
+    if(!gName) return defaultGrp;
+    let g=groups.find(g=>g.name===gName);
+    if(!g){
+      g={id:'g'+Date.now()+'_'+Math.random().toString(36).slice(2),name:gName,icon:'📁',color:'#2d6a4f'};
+      groups.push(g);
+    }
+    return g.id;
+  }
+
   const imp=xlsxRaws.slice(1).filter(r=>r&&r[si]!=null&&String(r[si]).trim()).map(r=>({
-    type:'pw',name:String(r[si]||'').trim(),id:ii>=0?String(r[ii]||'').trim():'',pw:pi>=0?String(r[pi]||'').trim():'',
-    note:ni>=0?String(r[ni]||'').trim():'',group:grp,updated:Date.now()
+    type:'pw',
+    name:String(r[si]||'').trim(),
+    id:ii>=0?String(r[ii]||'').trim():'',
+    pw:pi>=0?String(r[pi]||'').trim():'',
+    note:ni>=0?String(r[ni]||'').trim():'',
+    group:gi>=0?getOrCreateGroup(String(r[gi]||'').trim()):defaultGrp,
+    updated:Date.now()
   }));
   if(!imp.length){alert('가져올 데이터가 없어요');return;}
   const dupes=imp.filter(it=>items.find(d=>d.name===it.name&&d.id===it.id)).length;
