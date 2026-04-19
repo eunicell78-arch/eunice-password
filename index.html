@@ -143,6 +143,20 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;b
 .color-dot.sel{border-color:var(--text);transform:scale(1.2)}
 
 .tip{background:var(--surface2);border-radius:var(--rs);padding:12px 14px;font-size:12px;color:var(--muted);margin:14px 16px 0;line-height:1.6}
+
+/* ── PHOTO ── */
+.photo-upload-area{border:1.5px dashed var(--border);border-radius:var(--rs);padding:16px;text-align:center;cursor:pointer;background:var(--surface2);transition:border-color .15s}
+.photo-upload-area:active{border-color:var(--accent);background:var(--accent-bg)}
+.photo-upload-area p{font-size:13px;color:var(--muted);margin-top:6px}
+.photo-preview-wrap{position:relative;display:inline-block}
+.photo-preview{width:100%;max-height:160px;object-fit:cover;border-radius:var(--rs);cursor:pointer;display:block}
+.photo-remove-btn{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;border:none;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.card-photo{width:100%;max-height:140px;object-fit:cover;cursor:pointer;display:block;border-top:1px solid var(--border)}
+/* 사진 전체화면 뷰어 */
+#photoViewer{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;align-items:center;justify-content:center;padding:20px}
+#photoViewer.open{display:flex}
+#photoViewer img{max-width:100%;max-height:90vh;border-radius:var(--rs);object-fit:contain}
+#photoViewerClose{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:none;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 </style>
 </head>
 <body>
@@ -227,6 +241,20 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;b
       <select id="fGroup"></select>
     </div>
     <div class="mfield"><label>메모 (선택)</label><input type="text" id="fNote" placeholder="추가 정보" autocomplete="off"></div>
+    <div class="mfield">
+      <label>사진 첨부 (선택)</label>
+      <input type="file" id="fPhotoInput" accept="image/*" style="display:none" onchange="handlePhotoSelect(event)">
+      <div id="fPhotoArea" class="photo-upload-area" onclick="document.getElementById('fPhotoInput').click()">
+        <div style="font-size:28px">📷</div>
+        <p>탭해서 사진 선택</p>
+      </div>
+      <div id="fPhotoPreview" style="display:none;margin-top:8px">
+        <div class="photo-preview-wrap" style="display:block">
+          <img id="fPhotoImg" class="photo-preview" src="" alt="미리보기">
+          <button class="photo-remove-btn" onclick="removePhoto()">✕</button>
+        </div>
+      </div>
+    </div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeEdit()">취소</button>
       <button class="btn-del" id="delBtn" onclick="deleteItem()" style="display:none">삭제</button>
@@ -334,6 +362,12 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;b
       <button class="btn-save" onclick="confirmMemoImport()">가져오기</button>
     </div>
   </div>
+</div>
+
+<!-- ── 사진 전체화면 뷰어 ── -->
+<div id="photoViewer">
+  <button id="photoViewerClose" onclick="closePhotoViewer()">✕</button>
+  <img id="photoViewerImg" src="" alt="사진">
 </div>
 
 <!-- ── PIN 변경 ── -->
@@ -506,6 +540,7 @@ function renderItems(){
       </div>
       ${isBank?bankRows(it,ri):pwRows(it,ri)}
       ${it.note?`<div class="field-row"><span class="flbl">메모</span><span class="fval" style="color:var(--muted);font-weight:400">${esc(it.note)}</span></div>`:''}
+      ${it.photo?`<img class="card-photo" src="${it.photo}" alt="첨부 사진" onclick="openPhotoViewer('${ea(it.photo)}')">`:''}
     </div>`;
   }).join('');
 }
@@ -551,6 +586,7 @@ function openAdd(){
   fillGroupSelect('fGroup');
   if(curGroup&&curGroup!=='all'&&curGroup!==null) document.getElementById('fGroup').value=curGroup;
   document.getElementById('delBtn').style.display='none';
+  resetPhotoField();
   document.getElementById('editModal').classList.add('open');
   setTimeout(()=>document.getElementById('fName').focus(),120);
 }
@@ -570,6 +606,14 @@ function openEdit(i){
   fillGroupSelect('fGroup');
   document.getElementById('fGroup').value=it.group||'';
   document.getElementById('delBtn').style.display='block';
+  // 사진 로드
+  if(it.photo){
+    document.getElementById('fPhotoImg').src=it.photo;
+    document.getElementById('fPhotoArea').style.display='none';
+    document.getElementById('fPhotoPreview').style.display='block';
+  } else {
+    resetPhotoField();
+  }
   document.getElementById('editModal').classList.add('open');
 }
 
@@ -578,6 +622,8 @@ function closeEdit(){document.getElementById('editModal').classList.remove('open
 function saveItem(){
   const name=document.getElementById('fName').value.trim();
   if(!name){alert('이름을 입력해 주세요');return;}
+  const photoSrc=document.getElementById('fPhotoImg').src;
+  const photo=(photoSrc&&photoSrc!==window.location.href&&document.getElementById('fPhotoPreview').style.display!=='none')?photoSrc:'';
   const entry={
     type:curType, name,
     id:document.getElementById('fId').value.trim(),
@@ -588,10 +634,16 @@ function saveItem(){
     bankPw:document.getElementById('fBankPw').value.trim(),
     group:document.getElementById('fGroup').value||'',
     note:document.getElementById('fNote').value.trim(),
+    photo,
     updated:Date.now()
   };
   if(editIdx>=0){items[editIdx]=entry;}else{items.unshift(entry);}
-  saveData();closeEdit();
+  try{saveData();}catch(e){
+    if(e.name==='QuotaExceededError'){
+      alert('저장 공간이 부족해요!\n사진 크기를 줄이거나 다른 항목의 사진을 삭제해 주세요.');return;
+    }
+  }
+  closeEdit();
   if(document.getElementById('itemScreen').classList.contains('active')) renderItems();
   renderGroups();
 }
@@ -852,7 +904,54 @@ function importJSON(e){
 }
 function clearAll(){if(!confirm('모든 데이터를 삭제할까요?\n되돌릴 수 없어요.'))return;items=[];groups=[];saveData();renderGroups();closeMenu();if(document.getElementById('itemScreen').classList.contains('active'))goBack();}
 
-// ── PIN 변경 ──
+// ── 사진 기능 ──
+function resetPhotoField(){
+  document.getElementById('fPhotoInput').value='';
+  document.getElementById('fPhotoImg').src='';
+  document.getElementById('fPhotoArea').style.display='block';
+  document.getElementById('fPhotoPreview').style.display='none';
+}
+function removePhoto(){
+  resetPhotoField();
+}
+function handlePhotoSelect(e){
+  const file=e.target.files[0];
+  if(!file) return;
+  // canvas로 압축 (최대 800px, 품질 0.75)
+  const img=new Image();
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    img.onload=()=>{
+      const MAX=800;
+      let w=img.width, h=img.height;
+      if(w>MAX||h>MAX){
+        if(w>h){h=Math.round(h*MAX/w);w=MAX;}
+        else{w=Math.round(w*MAX/h);h=MAX;}
+      }
+      const canvas=document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      const compressed=canvas.toDataURL('image/jpeg',0.75);
+      document.getElementById('fPhotoImg').src=compressed;
+      document.getElementById('fPhotoArea').style.display='none';
+      document.getElementById('fPhotoPreview').style.display='block';
+    };
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value='';
+}
+function openPhotoViewer(src){
+  document.getElementById('photoViewerImg').src=src;
+  document.getElementById('photoViewer').classList.add('open');
+}
+function closePhotoViewer(){
+  document.getElementById('photoViewer').classList.remove('open');
+  document.getElementById('photoViewerImg').src='';
+}
+document.getElementById('photoViewer').addEventListener('click',function(e){
+  if(e.target===this) closePhotoViewer();
+});
 function openPinChange(){['curPin','newPin','newPin2'].forEach(id=>document.getElementById(id).value='');document.getElementById('pmErr').textContent='';document.getElementById('pinChangeModal').classList.add('open');}
 function closePinChange(){document.getElementById('pinChangeModal').classList.remove('open');}
 async function changePinSubmit(){
