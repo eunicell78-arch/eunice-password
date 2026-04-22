@@ -386,7 +386,18 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;b
 </div>
 
 <script>
-const LOCK_KEY='pv2_pin', DATA_KEY='pv2_data', GRP_KEY='pv2_grp';
+const LOCK_KEY='m7k_cfg', DATA_KEY='x4r9_store', GRP_KEY='b2w_cat';
+// 구버전 키 자동 마이그레이션
+(function migrateLegacyKeys(){
+  try{
+    const oldPin=localStorage.getItem('pv2_pin');
+    const oldData=localStorage.getItem('pv2_data');
+    const oldGrp=localStorage.getItem('pv2_grp');
+    if(oldPin&&!localStorage.getItem('m7k_cfg')){localStorage.setItem('m7k_cfg',oldPin);localStorage.removeItem('pv2_pin');}
+    if(oldData&&!localStorage.getItem('x4r9_store')){localStorage.setItem('x4r9_store',oldData);localStorage.removeItem('pv2_data');}
+    if(oldGrp&&!localStorage.getItem('b2w_cat')){localStorage.setItem('b2w_cat',oldGrp);localStorage.removeItem('pv2_grp');}
+  }catch(e){}
+})();
 let pinInput='',pinStep='verify',pinFirst='',wrongCount=0;
 let items=[], groups=[], editIdx=-1, editGrpIdx=-1, curGroup=null, selIcon='📁', lockTimer;
 let xlsxRawRows=[], xlsxHeaders=[];
