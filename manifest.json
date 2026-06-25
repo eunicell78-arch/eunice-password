@@ -1,23 +1,31 @@
 {
-  "name": "비밀번호 보관함",
-  "short_name": "보관함",
-  "description": "나만의 안전한 비밀번호 보관함",
+  "name": "유니스비밀번호",
+  "short_name": "유니스🔑",
+  "description": "유니스의 안전한 비밀번호 보관함",
   "start_url": "/eunice-password/",
   "scope": "/eunice-password/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f4f3ef",
+  "background_color": "#1a3d2e",
   "theme_color": "#2d6a4f",
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
