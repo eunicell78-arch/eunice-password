@@ -233,6 +233,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;b
     <div id="pwFields">
       <div class="mfield"><label>아이디 / 이메일</label><input type="text" id="fId" placeholder="예: hong@email.com" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="none"></div>
       <div class="mfield"><label>비밀번호</label><input type="text" id="fPw" placeholder="비밀번호" autocomplete="off" autocorrect="off" spellcheck="false"></div>
+      <div class="mfield" id="fUrlWrap"><label>사이트 주소 URL (선택)</label><input type="url" id="fUrl" placeholder="예: https://naver.com" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="none" inputmode="url"></div>
     </div>
     <!-- 은행/금융 필드 -->
     <div id="bankFields" style="display:none">
@@ -535,7 +536,7 @@ function renderItems(){
   if(curGroup==='all') list=items;
   else if(curGroup===null) list=items.filter(it=>!it.group||!groups.find(g=>g.id===it.group));
   else list=items.filter(it=>it.group===curGroup);
-  if(q) list=list.filter(it=>(it.name||it.site||'').toLowerCase().includes(q)||(it.id||'').toLowerCase().includes(q));
+  if(q) list=list.filter(it=>(it.name||it.site||'').toLowerCase().includes(q)||(it.id||'').toLowerCase().includes(q)||(it.url||'').toLowerCase().includes(q));
   const total=curGroup==='all'?items.length:curGroup===null?items.filter(it=>!it.group||!groups.find(g=>g.id===it.group)).length:items.filter(it=>it.group===curGroup).length;
   document.getElementById('countLabel').textContent=q?`"${q}" 결과 ${list.length}개`:`${total}개`;
   const C=document.getElementById('itemList');
@@ -562,9 +563,11 @@ function renderItems(){
 }
 
 function pwRows(it,ri){
+  const urlRow=it.url?`<div class="field-row"><span class="flbl">URL</span><a class="fval" href="${esc(it.url)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1" onclick="event.stopPropagation()">${esc(it.url.replace(/^https?:\/\//,''))}</a><div class="faction"><button class="btn-a" onclick="event.stopPropagation();cp('${ea(it.url)}',this)">복사</button></div></div>`:'';
   return `
     <div class="field-row"><span class="flbl">아이디</span><span class="fval">${esc(it.id)||'<span style="color:var(--hint)">없음</span>'}</span><div class="faction"><button class="btn-a" onclick="cp('${ea(it.id)}',this)">복사</button></div></div>
-    <div class="field-row"><span class="flbl">비밀번호</span><span class="fval" id="pv${ri}">••••••••</span><div class="faction"><button class="btn-a" id="pb${ri}" onclick="tp('${ea(it.pw)}',${ri})">보기</button><button class="btn-a" onclick="cp('${ea(it.pw)}',this)">복사</button></div></div>`;
+    <div class="field-row"><span class="flbl">비밀번호</span><span class="fval" id="pv${ri}">••••••••</span><div class="faction"><button class="btn-a" id="pb${ri}" onclick="tp('${ea(it.pw)}',${ri})">보기</button><button class="btn-a" onclick="cp('${ea(it.pw)}',this)">복사</button></div></div>
+    ${urlRow}`;
 }
 function bankRows(it,ri){
   return `
@@ -597,7 +600,7 @@ function openAdd(){
   editIdx=-1;curType='pw';
   document.getElementById('modalTitle').textContent='새 항목 추가';
   setType('pw');
-  ['fName','fId','fPw','fAcct','fBankId','fBankPw','fNote'].forEach(id=>document.getElementById(id).value='');
+  ['fName','fId','fPw','fAcct','fBankId','fBankPw','fNote','fUrl'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fAcctPw').value='';
   fillGroupSelect('fGroup');
   if(curGroup&&curGroup!=='all'&&curGroup!==null) document.getElementById('fGroup').value=curGroup;
@@ -619,6 +622,7 @@ function openEdit(i){
   document.getElementById('fBankId').value=it.bankId||'';
   document.getElementById('fBankPw').value=it.bankPw||'';
   document.getElementById('fNote').value=it.note||'';
+  document.getElementById('fUrl').value=it.url||'';
   fillGroupSelect('fGroup');
   document.getElementById('fGroup').value=it.group||'';
   document.getElementById('delBtn').style.display='block';
@@ -650,6 +654,7 @@ function saveItem(){
     bankPw:document.getElementById('fBankPw').value.trim(),
     group:document.getElementById('fGroup').value||'',
     note:document.getElementById('fNote').value.trim(),
+    url:document.getElementById('fUrl').value.trim(),
     photo,
     updated:Date.now()
   };
